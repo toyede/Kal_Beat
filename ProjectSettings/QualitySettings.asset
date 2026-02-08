@@ -120,11 +120,13 @@ QualitySettings:
     GameCoreXboxOne: 1
     Lumin: 0
     Nintendo Switch: 1
+    Nintendo Switch 2: 1
     PS4: 1
     PS5: 1
     Server: 0
     Stadia: 0
     Standalone: 1
+    VisionOS: 0
     WebGL: 0
     Windows Store Apps: 0
     XboxOne: 0
