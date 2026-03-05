@@ -1,0 +1,81 @@
+# AGENTS.md
+
+## Project Overview
+- Engine: Unity 6000.0.61f1
+- Language: C#
+- Gameplay scripts location: `Assets/Scripts`
+- Runtime/editor split:
+  - Runtime code: `Assets/Scripts/Runtime`
+  - Editor tools code: `Assets/Scripts/Editor`
+- Design reference: `docs/game_design.md`
+
+## Workflow for New Features
+When adding a new feature:
+1. Review relevant existing scripts first.
+2. Extend existing structure and avoid rewrites.
+3. Modify the minimum number of files.
+4. If structural changes are necessary, explain what changed and why.
+
+## Do Not Modify (unless explicitly required)
+- `Assets/Plugins/`
+- `Packages/`
+- `ProjectSettings/`
+- Any tool-generated folders (for example: `Library/`, `Temp/`, `Logs/`)
+
+## Coding Rules (Unity/C#)
+- Prefer `[SerializeField] private` for Inspector exposure instead of public fields.
+- Avoid heavy logic in `Update()`; prefer events, coroutines, or timers where appropriate.
+- Do not spam `FindObjectOfType()` / `GameObject.Find()` and never call them in `Update()`.
+- Cache references through serialized fields or initialization paths.
+- In timing/judgement hot paths, avoid per-frame allocations (no LINQ chains like `Where().ToList()` in loops).
+- Prefer index-based iteration and reusable buffers in runtime timing code.
+
+## Rhythm Game Timing Rules
+- Runtime sync source must be FMOD playback time (DSP-based timeline), not `Time.time`.
+- Chart event timing canonical unit is beat.
+- Required chart meta for runtime:
+  - `bpm`
+  - `offsetSec`
+  - `fmodEventPath`
+
+## Chart Validation Policy
+- Validation runs before save.
+- Save is blocked if any `Error` exists.
+- Save is allowed with `Warning` only.
+- Minimum `Error` conditions:
+  - `BPM <= 0`
+  - `songLengthSec <= 0`
+  - invalid `gridDivision`
+  - more than 4 events in the same time slot
+  - missing required meta values
+
+## Event System Rules
+- Event types:
+  - `AttackTiming`
+  - `MonsterAction`
+  - `CameraCue`
+  - `CameraMoving`
+- Up to 4 events are allowed in one time slot.
+- Execution order for same-slot events:
+  - `AttackTiming -> MonsterAction -> CameraMoving -> CameraCue`
+
+## FMOD Workflow Rules
+- Always follow: `Save (FMOD Studio) -> Build Banks -> Unity Refresh`.
+- Do not treat editor preview audio as runtime authority.
+- Runtime playback and sync must follow FMOD events/banks.
+
+## Comments and Encoding
+- Write source code comments in Korean.
+- Save source files as UTF-8 to prevent Korean text corruption.
+
+## After Code Changes (Required in response)
+Always include:
+1. Which scripts were added/modified and why.
+2. Step-by-step Unity Editor instructions:
+   - Which GameObject gets which script.
+   - Which serialized fields to assign.
+   - Required tags/layers/input actions/colliders/rigidbodies.
+   - Required prefab creation/update steps.
+3. Assumptions (scene name, existing objects, expected hierarchy).
+4. Test procedure and result summary.
+5. Any unverified items or tests not run.
