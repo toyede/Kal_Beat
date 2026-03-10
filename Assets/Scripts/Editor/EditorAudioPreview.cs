@@ -15,15 +15,15 @@ namespace KalBeat.Charting.Editor
             new[] { typeof(AudioClip), typeof(int) },
             new[] { typeof(AudioClip) });
         private static readonly MethodInfo StopAllPreviewClipsMethod = FindMethod("StopAllPreviewClips", Type.EmptyTypes);
-        private static readonly MethodInfo PausePreviewClipMethod = FindMethod("PausePreviewClip", Type.EmptyTypes, new[] { typeof(AudioClip) });
-        private static readonly MethodInfo ResumePreviewClipMethod = FindMethod("ResumePreviewClip", Type.EmptyTypes, new[] { typeof(AudioClip) });
-        private static readonly MethodInfo IsPreviewClipPlayingMethod = FindMethod("IsPreviewClipPlaying", Type.EmptyTypes, new[] { typeof(AudioClip) });
-        private static readonly MethodInfo GetPreviewClipPositionMethod = FindMethod("GetPreviewClipPosition", Type.EmptyTypes, new[] { typeof(AudioClip) });
-        private static readonly MethodInfo GetPreviewClipSamplePositionMethod = FindMethod("GetPreviewClipSamplePosition", Type.EmptyTypes, new[] { typeof(AudioClip) });
+        private static readonly MethodInfo PausePreviewClipMethod = FindMethod("PausePreviewClip", new[] { typeof(AudioClip) }, Type.EmptyTypes);
+        private static readonly MethodInfo ResumePreviewClipMethod = FindMethod("ResumePreviewClip", new[] { typeof(AudioClip) }, Type.EmptyTypes);
+        private static readonly MethodInfo IsPreviewClipPlayingMethod = FindMethod("IsPreviewClipPlaying", new[] { typeof(AudioClip) }, Type.EmptyTypes);
+        private static readonly MethodInfo GetPreviewClipPositionMethod = FindMethod("GetPreviewClipPosition", new[] { typeof(AudioClip) }, Type.EmptyTypes);
+        private static readonly MethodInfo GetPreviewClipSamplePositionMethod = FindMethod("GetPreviewClipSamplePosition", new[] { typeof(AudioClip) }, Type.EmptyTypes);
         private static readonly MethodInfo SetPreviewClipSamplePositionMethod = FindMethod(
             "SetPreviewClipSamplePosition",
-            new[] { typeof(int) },
-            new[] { typeof(AudioClip), typeof(int) });
+            new[] { typeof(AudioClip), typeof(int) },
+            new[] { typeof(int) });
 
         internal static bool IsAvailable => AudioUtilType != null && PlayPreviewClipMethod != null && StopAllPreviewClipsMethod != null;
 
@@ -34,9 +34,23 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
-            Stop();
+            Pause(clip);
 
-            object[] args = BuildPlayArguments(clip, startSample, loop);
+            object[] args = BuildPlayArguments(clip, startSample, loop, false);
+            if (args != null)
+            {
+                PlayPreviewClipMethod.Invoke(null, args);
+            }
+        }
+
+        internal static void PlayOneShot(AudioClip clip)
+        {
+            if (!IsAvailable || clip == null)
+            {
+                return;
+            }
+
+            object[] args = BuildPlayArguments(clip, 0, false, true);
             if (args != null)
             {
                 PlayPreviewClipMethod.Invoke(null, args);
@@ -151,7 +165,7 @@ namespace KalBeat.Charting.Editor
             }
         }
 
-        private static object[] BuildPlayArguments(AudioClip clip, int startSample, bool loop)
+        private static object[] BuildPlayArguments(AudioClip clip, int startSample, bool loop, bool duplicateFlag)
         {
             ParameterInfo[] parameters = PlayPreviewClipMethod.GetParameters();
 
@@ -172,7 +186,7 @@ namespace KalBeat.Charting.Editor
 
             if (parameters.Length == 4)
             {
-                return new object[] { clip, startSample, loop, false };
+                return new object[] { clip, startSample, loop, duplicateFlag };
             }
 
             return null;

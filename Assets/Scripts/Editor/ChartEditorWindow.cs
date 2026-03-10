@@ -18,6 +18,9 @@ namespace KalBeat.Charting.Editor
         private const float MinTimelineWidth = 900f;
         private const float MinTimelineHeight = 320f;
         private const float EventBoxWidth = 18f;
+        private const string MetronomeEventSearchName = "metronome";
+        private const string EventPreviewEventSearchName = "finger_snap";
+        private const float PreviewTriggerEpsilon = 0.0001f;
 
         private static readonly Color BackgroundColor = new Color(0.13f, 0.13f, 0.14f, 1f);
         private static readonly Color HeaderColor = new Color(0.17f, 0.17f, 0.18f, 1f);
@@ -30,6 +33,7 @@ namespace KalBeat.Charting.Editor
 
         private ChartData currentChart;
         private ChartEventData selectedEvent;
+        private readonly FmodEditorPreviewBackend fmodPreviewBackend = new FmodEditorPreviewBackend();
 
         private Vector2 leftPanelScroll;
         private Vector2 timelineScroll;
@@ -37,12 +41,17 @@ namespace KalBeat.Charting.Editor
 
         private float cursorBeat;
         private float pixelsPerBeat = DefaultPixelsPerBeat;
+        private float lastPreviewTickTimeSec;
         private float previewTimeSec;
         private float timelineViewportWidth;
         private float draggedBeat;
         private float dragBeatPointerOffset;
         private int selectedLane;
         private int draggedLane;
+        private string metronomePreviewEventPath = string.Empty;
+        private string eventPreviewEventPath = string.Empty;
+        private bool metronomeEnabled = true;
+        private bool eventPreviewEnabled = true;
         private bool snapEnabled = true;
         private bool isDraggingEvent;
         private bool previewPaused;
@@ -65,12 +74,13 @@ namespace KalBeat.Charting.Editor
             wantsMouseMove = true;
             EditorApplication.update += OnEditorUpdate;
             TryAssignFromSelection();
+            TryAutoAssignPreviewEvents();
         }
 
         private void OnDisable()
         {
             EditorApplication.update -= OnEditorUpdate;
-            StopPreviewAudio(false);
+            fmodPreviewBackend.Dispose();
         }
 
         private void OnSelectionChange()
@@ -86,19 +96,24 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
-            AudioClip previewClip = GetPreviewClip();
-            bool isPlaying = EditorAudioPreview.IsPlaying(previewClip);
+            fmodPreviewBackend.SyncMainPlaybackState();
+            bool isPlaying = IsPreviewPlaying();
 
             if (isPlaying)
             {
+                float previousTimeSec = previewWasPlaying ? lastPreviewTickTimeSec : previewTimeSec;
                 previewTimeSec = GetResolvedPreviewTime();
+                TriggerPreviewAudioBetween(previousTimeSec, previewTimeSec);
+                lastPreviewTickTimeSec = previewTimeSec;
                 SyncCursorFromPreviewTime(previewTimeSec);
                 EnsureCursorVisible();
+
                 Repaint();
             }
             else if (previewWasPlaying)
             {
                 previewTimeSec = GetResolvedPreviewTime();
+                lastPreviewTickTimeSec = previewTimeSec;
                 Repaint();
             }
 
@@ -193,8 +208,7 @@ namespace KalBeat.Charting.Editor
 
                 if (CanPreviewAudio())
                 {
-                    AudioClip previewClip = GetPreviewClip();
-                    GUILayout.Label($"{previewTimeSec:0.00}s / {previewClip.length:0.00}s", EditorStyles.miniLabel, GUILayout.Width(130f));
+                    GUILayout.Label($"{previewTimeSec:0.00}s / {GetPreviewDurationSec():0.00}s", EditorStyles.miniLabel, GUILayout.Width(130f));
                 }
 
                 GUILayout.Label($"Zoom {(pixelsPerBeat / DefaultPixelsPerBeat) * 100f:0}%", EditorStyles.miniLabel, GUILayout.Width(80f));
@@ -265,7 +279,6 @@ namespace KalBeat.Charting.Editor
 
             string nextSongId = EditorGUILayout.TextField("Song Id", meta.SongId);
             string nextSongName = EditorGUILayout.TextField("Song Name", meta.SongName);
-            AudioClip nextPreviewClip = (AudioClip)EditorGUILayout.ObjectField("Preview Audio", meta.PreviewAudioClip, typeof(AudioClip), false);
             string nextFmodEventPath = EditorGUILayout.TextField("FMOD Event Path", meta.FmodEventPath);
 
             GUILayout.Space(MetaPanelSpacing);
@@ -285,10 +298,9 @@ namespace KalBeat.Charting.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 RecordChartChange("Edit Chart Meta");
-                bool previewClipChanged = meta.PreviewAudioClip != nextPreviewClip;
+                bool fmodEventPathChanged = !string.Equals(meta.FmodEventPath, nextFmodEventPath, StringComparison.Ordinal);
                 meta.SongId = nextSongId;
                 meta.SongName = nextSongName;
-                meta.PreviewAudioClip = nextPreviewClip;
                 meta.FmodEventPath = nextFmodEventPath;
                 meta.Bpm = nextBpm;
                 meta.OffsetSec = nextOffsetSec;
@@ -299,7 +311,7 @@ namespace KalBeat.Charting.Editor
                 ClampEditorState();
                 MarkChartDirty();
 
-                if (previewClipChanged)
+                if (fmodEventPathChanged)
                 {
                     StopPreviewAudio(true);
                 }
@@ -307,24 +319,24 @@ namespace KalBeat.Charting.Editor
 
             GUILayout.Label($"Timeline Beats: {GetTotalBeats():0.##}", EditorStyles.miniLabel);
 
-            DrawPreviewControls(meta.PreviewAudioClip);
+            DrawPreviewControls();
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawPreviewControls(AudioClip previewClip)
+        private void DrawPreviewControls()
         {
             EditorGUILayout.Space(4f);
             GUILayout.Label("Audio Preview", EditorStyles.boldLabel);
 
-            if (previewClip == null)
+            if (string.IsNullOrWhiteSpace(currentChart.Meta.FmodEventPath))
             {
-                EditorGUILayout.HelpBox("Assign Preview Audio to enable playback and scrubbing.", MessageType.Info);
+                EditorGUILayout.HelpBox("Assign FMOD Event Path to enable preview playback.", MessageType.Info);
                 return;
             }
 
-            if (!EditorAudioPreview.IsAvailable)
+            if (!CanPreviewAudio())
             {
-                EditorGUILayout.HelpBox("Unity preview audio API is not available in this editor version.", MessageType.Warning);
+                EditorGUILayout.HelpBox("FMOD preview event could not be resolved. Save and build banks in FMOD Studio, then refresh in Unity.", MessageType.Warning);
                 return;
             }
 
@@ -344,15 +356,24 @@ namespace KalBeat.Charting.Editor
                 SeekPreviewToCursor(IsPreviewPlaying());
             }
 
-            GUILayout.Label($"{previewTimeSec:0.00}s / {previewClip.length:0.00}s", EditorStyles.miniLabel);
+            GUILayout.Label($"{previewTimeSec:0.00}s / {GetPreviewDurationSec():0.00}s", EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
             EditorGUI.BeginChangeCheck();
-            float nextPreviewTime = GUILayout.HorizontalSlider(previewTimeSec, 0f, previewClip.length);
+            float nextPreviewTime = GUILayout.HorizontalSlider(previewTimeSec, 0f, GetPreviewDurationSec());
             if (EditorGUI.EndChangeCheck())
             {
                 SetPreviewTime(nextPreviewTime, IsPreviewPlaying());
             }
+
+            EditorGUILayout.Space(4f);
+            GUILayout.Label("Preview Cues", EditorStyles.boldLabel);
+
+            metronomeEnabled = EditorGUILayout.ToggleLeft("Enable Metronome", metronomeEnabled);
+            metronomePreviewEventPath = EditorGUILayout.TextField("Metronome Event", metronomePreviewEventPath);
+
+            eventPreviewEnabled = EditorGUILayout.ToggleLeft("Enable Event Preview SFX", eventPreviewEnabled);
+            eventPreviewEventPath = EditorGUILayout.TextField("Event SFX Event", eventPreviewEventPath);
         }
 
         private void DrawLeftPanel()
@@ -890,7 +911,9 @@ namespace KalBeat.Charting.Editor
             rightPanelScroll = Vector2.zero;
             cursorBeat = 0f;
             previewTimeSec = 0f;
+            lastPreviewTickTimeSec = 0f;
             selectedLane = 0;
+            TryAutoAssignPreviewEvents();
             Repaint();
         }
 
@@ -899,6 +922,19 @@ namespace KalBeat.Charting.Editor
             if (Selection.activeObject is ChartData chart && !ReferenceEquals(currentChart, chart))
             {
                 AssignChart(chart);
+            }
+        }
+
+        private void TryAutoAssignPreviewEvents()
+        {
+            if (string.IsNullOrWhiteSpace(metronomePreviewEventPath))
+            {
+                metronomePreviewEventPath = fmodPreviewBackend.FindEventPathByName(MetronomeEventSearchName);
+            }
+
+            if (string.IsNullOrWhiteSpace(eventPreviewEventPath))
+            {
+                eventPreviewEventPath = fmodPreviewBackend.FindEventPathByName(EventPreviewEventSearchName);
             }
         }
 
@@ -960,19 +996,16 @@ namespace KalBeat.Charting.Editor
             return snapEnabled ? QuantizeBeat(beat) : beat;
         }
 
-        private AudioClip GetPreviewClip()
-        {
-            return currentChart != null ? currentChart.Meta.PreviewAudioClip : null;
-        }
-
         private bool CanPreviewAudio()
         {
-            return currentChart != null && GetPreviewClip() != null && EditorAudioPreview.IsAvailable;
+            return currentChart != null &&
+                   !string.IsNullOrWhiteSpace(currentChart.Meta.FmodEventPath) &&
+                   fmodPreviewBackend.CanPreviewEvent(currentChart.Meta.FmodEventPath);
         }
 
         private bool IsPreviewPlaying()
         {
-            return CanPreviewAudio() && EditorAudioPreview.IsPlaying(GetPreviewClip());
+            return CanPreviewAudio() && fmodPreviewBackend.IsMainPlaying(currentChart.Meta.FmodEventPath);
         }
 
         private void TogglePreviewPlayPause()
@@ -994,15 +1027,18 @@ namespace KalBeat.Charting.Editor
 
         private void PlayPreviewAudio()
         {
-            AudioClip previewClip = GetPreviewClip();
-            if (previewClip == null)
+            if (!CanPreviewAudio())
             {
                 return;
             }
 
-            previewTimeSec = Mathf.Clamp(previewTimeSec, 0f, previewClip.length);
-            int startSample = Mathf.Clamp(Mathf.RoundToInt(previewTimeSec * previewClip.frequency), 0, Math.Max(0, previewClip.samples - 1));
-            EditorAudioPreview.Play(previewClip, startSample, false);
+            previewTimeSec = Mathf.Clamp(previewTimeSec, 0f, GetPreviewDurationSec());
+            if (!fmodPreviewBackend.PlayMainEvent(currentChart.Meta.FmodEventPath, previewTimeSec))
+            {
+                return;
+            }
+
+            lastPreviewTickTimeSec = previewTimeSec;
             previewPaused = false;
             previewWasPlaying = true;
         }
@@ -1010,20 +1046,25 @@ namespace KalBeat.Charting.Editor
         private void PausePreviewAudio()
         {
             previewTimeSec = GetResolvedPreviewTime();
-            EditorAudioPreview.Stop();
+            lastPreviewTickTimeSec = previewTimeSec;
+            fmodPreviewBackend.PauseMainEvent();
             previewPaused = true;
             previewWasPlaying = false;
         }
 
         private void StopPreviewAudio(bool resetToStart)
         {
-            EditorAudioPreview.Stop();
+            fmodPreviewBackend.StopMainEvent();
             previewPaused = false;
             previewWasPlaying = false;
 
             if (resetToStart)
             {
                 SetPreviewTime(0f, false);
+            }
+            else
+            {
+                lastPreviewTickTimeSec = previewTimeSec;
             }
         }
 
@@ -1045,43 +1086,118 @@ namespace KalBeat.Charting.Editor
 
         private void SetPreviewTime(float timeSeconds, bool keepPlaying)
         {
-            AudioClip previewClip = GetPreviewClip();
-            if (previewClip == null)
+            if (currentChart == null)
             {
                 previewTimeSec = 0f;
                 return;
             }
 
-            previewTimeSec = Mathf.Clamp(timeSeconds, 0f, previewClip.length);
+            previewTimeSec = Mathf.Clamp(timeSeconds, 0f, GetPreviewDurationSec());
+            lastPreviewTickTimeSec = previewTimeSec;
             SyncCursorFromPreviewTime(previewTimeSec);
-            EditorAudioPreview.SetTimeSeconds(previewClip, previewTimeSec);
-
-            if (!EditorAudioPreview.IsAvailable)
-            {
-                return;
-            }
+            fmodPreviewBackend.SeekMainEvent(currentChart.Meta.FmodEventPath, previewTimeSec, keepPlaying);
 
             if (keepPlaying)
             {
                 previewPaused = false;
-                PlayPreviewAudio();
+            }
+        }
+
+        private void TriggerPreviewAudioBetween(float previousTimeSec, float currentTimeSec)
+        {
+            if (currentChart == null || currentTimeSec <= previousTimeSec + PreviewTriggerEpsilon)
+            {
+                return;
+            }
+
+            TriggerMetronomeBetween(previousTimeSec, currentTimeSec);
+            TriggerEventPreviewBetween(previousTimeSec, currentTimeSec);
+        }
+
+        private void TriggerMetronomeBetween(float previousTimeSec, float currentTimeSec)
+        {
+            if (!metronomeEnabled || string.IsNullOrWhiteSpace(metronomePreviewEventPath) || currentChart == null)
+            {
+                return;
+            }
+
+            float bpm = currentChart.Meta.Bpm;
+            if (bpm <= 0f)
+            {
+                return;
+            }
+
+            float beatIntervalSec = 60f / bpm;
+            float offsetSec = currentChart.Meta.OffsetSec;
+            if (currentTimeSec + PreviewTriggerEpsilon < offsetSec)
+            {
+                return;
+            }
+
+            float scanStartSec = Mathf.Max(previousTimeSec, offsetSec);
+            int firstTickIndex = Mathf.Max(0, Mathf.CeilToInt(((scanStartSec - offsetSec) - PreviewTriggerEpsilon) / beatIntervalSec));
+
+            for (int tickIndex = firstTickIndex; ; tickIndex++)
+            {
+                float tickTimeSec = offsetSec + (tickIndex * beatIntervalSec);
+                if (tickTimeSec > currentTimeSec + PreviewTriggerEpsilon)
+                {
+                    break;
+                }
+
+                if (tickTimeSec > previousTimeSec + PreviewTriggerEpsilon)
+                {
+                    fmodPreviewBackend.PlayOneShot(metronomePreviewEventPath);
+                }
+            }
+        }
+
+        private void TriggerEventPreviewBetween(float previousTimeSec, float currentTimeSec)
+        {
+            if (!eventPreviewEnabled || string.IsNullOrWhiteSpace(eventPreviewEventPath) || currentChart == null || currentChart.Events == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null)
+                {
+                    continue;
+                }
+
+                float eventTimeSec = GetPreviewTimeFromBeat(eventData.Beat) + (eventData.NudgeMs * 0.001f);
+                if (eventTimeSec > previousTimeSec + PreviewTriggerEpsilon && eventTimeSec <= currentTimeSec + PreviewTriggerEpsilon)
+                {
+                    fmodPreviewBackend.PlayOneShot(eventPreviewEventPath);
+                }
             }
         }
 
         private float GetResolvedPreviewTime()
         {
-            AudioClip previewClip = GetPreviewClip();
-            if (previewClip == null)
+            if (currentChart == null)
             {
                 return 0f;
             }
 
-            if (EditorAudioPreview.IsAvailable && IsPreviewPlaying())
+            if (fmodPreviewBackend.HasMainInstance(currentChart.Meta.FmodEventPath))
             {
-                return EditorAudioPreview.GetTimeSeconds(previewClip);
+                return Mathf.Clamp(fmodPreviewBackend.GetMainTimelinePositionSec(), 0f, GetPreviewDurationSec());
             }
 
-            return Mathf.Clamp(previewTimeSec, 0f, previewClip.length);
+            return Mathf.Clamp(previewTimeSec, 0f, GetPreviewDurationSec());
+        }
+
+        private float GetPreviewDurationSec()
+        {
+            if (currentChart == null)
+            {
+                return 0f;
+            }
+
+            return Mathf.Max(0f, currentChart.Meta.SongLengthSec);
         }
 
         private void SyncCursorFromPreviewTime(float timeSeconds)
