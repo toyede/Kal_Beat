@@ -43,6 +43,9 @@ namespace KalBeat.Charting.Editor
         private float pixelsPerBeat = DefaultPixelsPerBeat;
         private float lastPreviewTickTimeSec;
         private float previewTimeSec;
+        private float previewSpeed = 1f;
+        private float previewMusicVolume = 1f;
+        private float previewCueVolume = 1f;
         private float timelineViewportWidth;
         private float draggedBeat;
         private float dragBeatPointerOffset;
@@ -50,6 +53,7 @@ namespace KalBeat.Charting.Editor
         private int draggedLane;
         private string metronomePreviewEventPath = string.Empty;
         private string eventPreviewEventPath = string.Empty;
+        private TextAsset jsonImportAsset;
         private bool metronomeEnabled = true;
         private bool eventPreviewEnabled = true;
         private bool snapEnabled = true;
@@ -360,6 +364,26 @@ namespace KalBeat.Charting.Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUI.BeginChangeCheck();
+            float nextPreviewSpeed = EditorGUILayout.FloatField("Speed", previewSpeed);
+            if (EditorGUI.EndChangeCheck())
+            {
+                previewSpeed = Mathf.Clamp(nextPreviewSpeed, 0.01f, 4f);
+                fmodPreviewBackend.SetMainSpeed(previewSpeed);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.BeginChangeCheck();
+            float nextPreviewMusicVolume = EditorGUILayout.FloatField("Music Volume", previewMusicVolume);
+            float nextPreviewCueVolume = EditorGUILayout.FloatField("Cue Volume", previewCueVolume);
+            if (EditorGUI.EndChangeCheck())
+            {
+                previewMusicVolume = Mathf.Clamp(nextPreviewMusicVolume, 0f, 4f);
+                previewCueVolume = Mathf.Clamp(nextPreviewCueVolume, 0f, 4f);
+                fmodPreviewBackend.SetMainVolume(previewMusicVolume);
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUI.BeginChangeCheck();
             float nextPreviewTime = GUILayout.HorizontalSlider(previewTimeSec, 0f, GetPreviewDurationSec());
             if (EditorGUI.EndChangeCheck())
             {
@@ -406,6 +430,19 @@ namespace KalBeat.Charting.Editor
                 if (GUILayout.Button("Clear All Events", GUILayout.Height(24f)))
                 {
                     ClearAllEvents();
+                }
+            }
+
+            GUILayout.Space(12f);
+            GUILayout.Label("JSON Import", EditorStyles.boldLabel);
+            jsonImportAsset = (TextAsset)EditorGUILayout.ObjectField("JSON Chart", jsonImportAsset, typeof(TextAsset), false);
+            EditorGUILayout.HelpBox("Import overwrites current events and updates BPM, Offset Sec, Song Length and Lane Count from JSON. Song Id, Song Name, FMOD Event Path and Grid stay unchanged.", MessageType.Info);
+
+            using (new EditorGUI.DisabledScope(currentChart == null || jsonImportAsset == null))
+            {
+                if (GUILayout.Button("Import Into Current Chart", GUILayout.Height(24f)))
+                {
+                    ImportJsonIntoCurrentChart();
                 }
             }
 
@@ -876,6 +913,54 @@ namespace KalBeat.Charting.Editor
             AssetDatabase.Refresh();
         }
 
+        private void ImportJsonIntoCurrentChart()
+        {
+            if (currentChart == null || jsonImportAsset == null)
+            {
+                return;
+            }
+
+            bool confirmed = EditorUtility.DisplayDialog(
+                "Import JSON Chart",
+                "This will overwrite the current chart events and update BPM, Offset Sec, Song Length and Lane Count.\n\nSong Id, Song Name, FMOD Event Path and Grid will stay unchanged.",
+                "Import",
+                "Cancel");
+
+            if (!confirmed)
+            {
+                return;
+            }
+
+            if (!JsonChartImportUtility.TryCreateImportData(jsonImportAsset, out JsonChartImportUtility.JsonChartImportData importData, out string errorMessage))
+            {
+                EditorUtility.DisplayDialog("Import Failed", errorMessage, "OK");
+                return;
+            }
+
+            StopPreviewAudio(true);
+            RecordChartChange("Import JSON Chart");
+
+            ChartMeta meta = currentChart.Meta;
+            meta.Bpm = importData.Bpm;
+            meta.OffsetSec = importData.OffsetSec;
+            meta.SongLengthSec = importData.SongLengthSec;
+            meta.LaneCount = importData.LaneCount;
+            meta.MaxEventsPerSlot = Mathf.Max(4, meta.MaxEventsPerSlot);
+
+            currentChart.Events.Clear();
+            currentChart.Events.AddRange(importData.Events);
+
+            selectedEvent = null;
+            cursorBeat = 0f;
+            selectedLane = 0;
+
+            SortEvents();
+            ClampEditorState();
+            MarkChartDirty();
+
+            ShowNotification(new GUIContent($"Imported {importData.Events.Count} events."));
+        }
+
         private void CreateNewChartAsset()
         {
             string path = EditorUtility.SaveFilePanelInProject(
@@ -1033,7 +1118,7 @@ namespace KalBeat.Charting.Editor
             }
 
             previewTimeSec = Mathf.Clamp(previewTimeSec, 0f, GetPreviewDurationSec());
-            if (!fmodPreviewBackend.PlayMainEvent(currentChart.Meta.FmodEventPath, previewTimeSec))
+            if (!fmodPreviewBackend.PlayMainEvent(currentChart.Meta.FmodEventPath, previewTimeSec, previewSpeed, previewMusicVolume))
             {
                 return;
             }
@@ -1147,7 +1232,7 @@ namespace KalBeat.Charting.Editor
 
                 if (tickTimeSec > previousTimeSec + PreviewTriggerEpsilon)
                 {
-                    fmodPreviewBackend.PlayOneShot(metronomePreviewEventPath);
+                    fmodPreviewBackend.PlayOneShot(metronomePreviewEventPath, previewCueVolume);
                 }
             }
         }
@@ -1170,7 +1255,7 @@ namespace KalBeat.Charting.Editor
                 float eventTimeSec = GetPreviewTimeFromBeat(eventData.Beat) + (eventData.NudgeMs * 0.001f);
                 if (eventTimeSec > previousTimeSec + PreviewTriggerEpsilon && eventTimeSec <= currentTimeSec + PreviewTriggerEpsilon)
                 {
-                    fmodPreviewBackend.PlayOneShot(eventPreviewEventPath);
+                    fmodPreviewBackend.PlayOneShot(eventPreviewEventPath, previewCueVolume);
                 }
             }
         }

@@ -13,6 +13,8 @@ namespace KalBeat.Charting.Editor
         private EventInstance mainEventInstance;
         private string currentMainEventPath = string.Empty;
         private bool mainEventPaused;
+        private float mainEventSpeed = 1f;
+        private float mainEventVolume = 1f;
 
         internal bool IsMainPlaying(string eventPath)
         {
@@ -37,7 +39,7 @@ namespace KalBeat.Charting.Editor
             return ResolveEvent(eventPath) != null;
         }
 
-        internal bool PlayMainEvent(string eventPath, float startTimeSec)
+        internal bool PlayMainEvent(string eventPath, float startTimeSec, float speed, float volume)
         {
             if (string.IsNullOrWhiteSpace(eventPath))
             {
@@ -48,6 +50,8 @@ namespace KalBeat.Charting.Editor
 
             if (HasMainInstance(eventPath))
             {
+                SetMainSpeed(speed);
+                SetMainVolume(volume);
                 SetTimelinePosition(startTimeSec);
                 FMOD.RESULT result = mainEventInstance.setPaused(false);
                 if (result == FMOD.RESULT.OK)
@@ -60,6 +64,8 @@ namespace KalBeat.Charting.Editor
             }
 
             StopMainEvent();
+            mainEventSpeed = Mathf.Max(0.01f, speed);
+            mainEventVolume = Mathf.Max(0f, volume);
 
             EditorEventRef eventRef = ResolveEvent(eventPath);
             if (eventRef == null)
@@ -67,13 +73,15 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            mainEventInstance = EditorUtils.PreviewEvent(eventRef, EmptyParameterValues, 1f, Mathf.Max(0f, startTimeSec));
+            mainEventInstance = EditorUtils.PreviewEvent(eventRef, EmptyParameterValues, mainEventVolume, Mathf.Max(0f, startTimeSec));
             if (!mainEventInstance.isValid())
             {
                 currentMainEventPath = string.Empty;
                 return false;
             }
 
+            ApplyMainSpeed();
+            ApplyMainVolume();
             currentMainEventPath = eventPath;
             mainEventPaused = false;
             return true;
@@ -96,6 +104,7 @@ namespace KalBeat.Charting.Editor
         {
             if (HasMainInstance(eventPath))
             {
+                ApplyMainSpeed();
                 SetTimelinePosition(timeSec);
                 mainEventInstance.setPaused(!keepPlaying);
                 mainEventPaused = !keepPlaying;
@@ -104,7 +113,27 @@ namespace KalBeat.Charting.Editor
 
             if (keepPlaying)
             {
-                PlayMainEvent(eventPath, timeSec);
+                PlayMainEvent(eventPath, timeSec, mainEventSpeed, mainEventVolume);
+            }
+        }
+
+        internal void SetMainSpeed(float speed)
+        {
+            mainEventSpeed = Mathf.Max(0.01f, speed);
+
+            if (mainEventInstance.isValid())
+            {
+                ApplyMainSpeed();
+            }
+        }
+
+        internal void SetMainVolume(float volume)
+        {
+            mainEventVolume = Mathf.Max(0f, volume);
+
+            if (mainEventInstance.isValid())
+            {
+                ApplyMainVolume();
             }
         }
 
@@ -157,7 +186,7 @@ namespace KalBeat.Charting.Editor
             return Mathf.Max(0f, positionMs / 1000f);
         }
 
-        internal bool PlayOneShot(string eventPath)
+        internal bool PlayOneShot(string eventPath, float volume)
         {
             if (string.IsNullOrWhiteSpace(eventPath))
             {
@@ -172,7 +201,7 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            EventInstance previewInstance = EditorUtils.PreviewEvent(eventRef, EmptyParameterValues);
+            EventInstance previewInstance = EditorUtils.PreviewEvent(eventRef, EmptyParameterValues, Mathf.Max(0f, volume));
             return previewInstance.isValid();
         }
 
@@ -239,6 +268,26 @@ namespace KalBeat.Charting.Editor
 
             int positionMs = Mathf.Max(0, Mathf.RoundToInt(timeSec * 1000f));
             mainEventInstance.setTimelinePosition(positionMs);
+        }
+
+        private void ApplyMainSpeed()
+        {
+            if (!mainEventInstance.isValid())
+            {
+                return;
+            }
+
+            mainEventInstance.setPitch(mainEventSpeed);
+        }
+
+        private void ApplyMainVolume()
+        {
+            if (!mainEventInstance.isValid())
+            {
+                return;
+            }
+
+            mainEventInstance.setVolume(mainEventVolume);
         }
 
         private bool TryGetPlaybackState(out PLAYBACK_STATE playbackState)
