@@ -8,9 +8,18 @@ namespace KalBeat.Charting
     {
         [SerializeField] private ChartMeta meta = new ChartMeta();
         [SerializeField] private List<ChartEventData> events = new List<ChartEventData>();
+        [SerializeField, HideInInspector] private ChartResolvedTimeline resolvedTimeline = new ChartResolvedTimeline();
 
         public ChartMeta Meta => meta;
         public List<ChartEventData> Events => events;
+        public ChartResolvedTimeline ResolvedTimeline => resolvedTimeline;
+
+        public void InvalidateResolvedTimeline(string reason)
+        {
+            resolvedTimeline ??= new ChartResolvedTimeline();
+            resolvedTimeline.SourceSignature = string.Empty;
+            resolvedTimeline.SetInvalid(reason);
+        }
 
         private void OnValidate()
         {
@@ -19,10 +28,14 @@ namespace KalBeat.Charting
                 meta = new ChartMeta();
             }
 
+            meta.SyncLaneBindingsWithLaneCount();
+
             if (events == null)
             {
                 events = new List<ChartEventData>();
             }
+
+            resolvedTimeline ??= new ChartResolvedTimeline();
         }
     }
 }

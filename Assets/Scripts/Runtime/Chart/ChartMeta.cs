@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KalBeat.Charting
@@ -16,6 +17,7 @@ namespace KalBeat.Charting
         [SerializeField] private int gridDivision = 4;
         [SerializeField] private int laneCount = 4;
         [SerializeField] private int maxEventsPerSlot = 4;
+        [SerializeField] private List<LaneBindingData> laneBindings = new List<LaneBindingData>();
 
         public string SongId
         {
@@ -68,13 +70,43 @@ namespace KalBeat.Charting
         public int LaneCount
         {
             get => laneCount;
-            set => laneCount = value;
+            set
+            {
+                laneCount = Mathf.Max(1, value);
+                SyncLaneBindingsWithLaneCount();
+            }
         }
 
         public int MaxEventsPerSlot
         {
             get => maxEventsPerSlot;
             set => maxEventsPerSlot = value;
+        }
+
+        public List<LaneBindingData> LaneBindings => laneBindings;
+
+        public void SyncLaneBindingsWithLaneCount()
+        {
+            laneBindings ??= new List<LaneBindingData>();
+
+            int targetCount = Mathf.Max(1, laneCount);
+            while (laneBindings.Count < targetCount)
+            {
+                laneBindings.Add(new LaneBindingData());
+            }
+
+            if (laneBindings.Count > targetCount)
+            {
+                laneBindings.RemoveRange(targetCount, laneBindings.Count - targetCount);
+            }
+
+            for (int i = 0; i < laneBindings.Count; i++)
+            {
+                if (laneBindings[i] == null)
+                {
+                    laneBindings[i] = new LaneBindingData();
+                }
+            }
         }
     }
 }

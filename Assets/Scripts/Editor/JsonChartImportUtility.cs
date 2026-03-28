@@ -71,10 +71,11 @@ namespace KalBeat.Charting.Editor
                 {
                     Beat = beat,
                     Lane = lane,
-                    EventType = ChartEventType.None,
-                    MonsterActionKind = MonsterActionKind.None,
-                    CameraCueKind = CameraCueKind.None,
-                    CameraMovingKind = CameraMovingKind.None,
+                    Kind = CombatEventKind.None,
+                    Phase = CombatEventPhase.Timing,
+                    StepIndex = 0,
+                    ReadyCueType = ReadyCueType.None,
+                    DirectionHint = PlayerRelativeDirection.None,
                     NudgeMs = 0f
                 };
 

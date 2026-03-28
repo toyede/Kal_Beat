@@ -1,4 +1,6 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using KalBeat.Combat;
 using UnityEditor;
 using UnityEngine;
 using KalBeat.Charting;
@@ -54,8 +56,10 @@ namespace KalBeat.Charting.Editor
         private string metronomePreviewEventPath = string.Empty;
         private string eventPreviewEventPath = string.Empty;
         private TextAsset jsonImportAsset;
+        private int selectedPatternPopupIndex;
         private bool metronomeEnabled = true;
         private bool eventPreviewEnabled = true;
+        private bool metaPanelExpanded = true;
         private bool snapEnabled = true;
         private bool isDraggingEvent;
         private bool previewPaused;
@@ -277,7 +281,13 @@ namespace KalBeat.Charting.Editor
             var meta = currentChart.Meta;
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Chart Meta", EditorStyles.boldLabel);
+            metaPanelExpanded = EditorGUILayout.Foldout(metaPanelExpanded, "Chart Meta", true, EditorStyles.foldoutHeader);
+
+            if (!metaPanelExpanded)
+            {
+                EditorGUILayout.EndVertical();
+                return;
+            }
 
             EditorGUI.BeginChangeCheck();
 
@@ -325,6 +335,50 @@ namespace KalBeat.Charting.Editor
 
             DrawPreviewControls();
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawLaneBindings(ChartMeta meta)
+        {
+            if (meta == null)
+            {
+                return;
+            }
+
+            meta.SyncLaneBindingsWithLaneCount();
+
+            EditorGUILayout.HelpBox("Lane binding is fixed for the whole chart. The current editor supports None and Monster Definition bindings.", MessageType.Info);
+
+            MonsterDefinition[] monsterDefinitions = LoadMonsterDefinitions();
+            string[] popupOptions = BuildLaneBindingPopupOptions(monsterDefinitions);
+            int[] nextSelections = new int[meta.LaneBindings.Count];
+
+            EditorGUI.BeginChangeCheck();
+
+            for (int i = 0; i < meta.LaneBindings.Count; i++)
+            {
+                LaneBindingData binding = meta.LaneBindings[i] ?? new LaneBindingData();
+                meta.LaneBindings[i] = binding;
+
+                int currentSelection = GetLaneBindingSelectionIndex(binding, monsterDefinitions);
+                nextSelections[i] = EditorGUILayout.Popup($"Lane {i + 1}", currentSelection, popupOptions);
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                RecordChartChange("Edit Lane Bindings");
+
+                for (int i = 0; i < meta.LaneBindings.Count; i++)
+                {
+                    ApplyLaneBindingSelection(meta.LaneBindings[i], nextSelections[i], monsterDefinitions);
+                }
+
+                MarkChartDirty();
+            }
+
+            if (monsterDefinitions.Length == 0)
+            {
+                EditorGUILayout.HelpBox("No Monster Definition assets were found. Create one first to assign a monster to a lane.", MessageType.Warning);
+            }
         }
 
         private void DrawPreviewControls()
@@ -405,15 +459,24 @@ namespace KalBeat.Charting.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(LeftPanelWidth), GUILayout.ExpandHeight(true));
             leftPanelScroll = EditorGUILayout.BeginScrollView(leftPanelScroll, GUILayout.ExpandHeight(true));
 
+            GUILayout.Label("Lane Bindings", EditorStyles.boldLabel);
+            DrawLaneBindings(currentChart.Meta);
+            GUILayout.Space(12f);
+
             GUILayout.Label("Event Palette", EditorStyles.boldLabel);
             GUILayout.Label("Space adds a None marker at the current cursor.", EditorStyles.wordWrappedLabel);
             GUILayout.Space(4f);
 
-            DrawAddButton("Add None Marker", ChartEventType.None);
-            DrawAddButton("Add AttackTiming", ChartEventType.AttackTiming);
-            DrawAddButton("Add MonsterAction", ChartEventType.MonsterAction);
-            DrawAddButton("Add CameraCue", ChartEventType.CameraCue);
-            DrawAddButton("Add CameraMoving", ChartEventType.CameraMoving);
+            MonsterDefinition selectedLaneMonsterDefinition = GetMonsterDefinitionForLane(selectedLane);
+            CombatEventKind[] allowedPaletteKinds = GetAllowedCombatEventKinds(selectedLaneMonsterDefinition);
+
+            DrawAddButton("Add None Marker", CombatEventKind.None, allowedPaletteKinds);
+            DrawAddButton("Add Melee Counterable", CombatEventKind.MeleeThreatCounterable, allowedPaletteKinds);
+            DrawAddButton("Add Melee Dodge", CombatEventKind.MeleeThreatDodgeOnly, allowedPaletteKinds);
+            DrawAddButton("Add Player Dash", CombatEventKind.PlayerDashAttack, allowedPaletteKinds);
+            DrawAddButton("Add Player Ranged", CombatEventKind.PlayerRangedAttack, allowedPaletteKinds);
+            DrawAddButton("Add Ranged Counterable", CombatEventKind.RangedThreatCounterable, allowedPaletteKinds);
+            DrawAddButton("Add Ranged Dodge", CombatEventKind.RangedThreatDodgeOnly, allowedPaletteKinds);
 
             GUILayout.Space(8f);
 
@@ -470,11 +533,16 @@ namespace KalBeat.Charting.Editor
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawAddButton(string label, ChartEventType eventType)
+        private void DrawAddButton(string label, CombatEventKind eventKind, CombatEventKind[] allowedEventKinds)
         {
+            if (!ContainsCombatEventKind(allowedEventKinds, eventKind))
+            {
+                return;
+            }
+
             if (GUILayout.Button(label, GUILayout.Height(26f)))
             {
-                AddOrUpdateEventAtCursor(eventType);
+                AddOrUpdateEventAtCursor(eventKind);
             }
         }
 
@@ -564,7 +632,7 @@ namespace KalBeat.Charting.Editor
                 }
 
                 Rect eventRect = GetEventRect(GetDisplayedBeat(eventData), GetDisplayedLane(eventData));
-                EditorGUI.DrawRect(eventRect, GetEventColor(eventData.EventType));
+                EditorGUI.DrawRect(eventRect, GetEventColor(eventData));
 
                 if (ReferenceEquals(selectedEvent, eventData))
                 {
@@ -596,25 +664,34 @@ namespace KalBeat.Charting.Editor
 
             float nextBeat = EditorGUILayout.FloatField("Beat", selectedEvent.Beat);
             int nextLane = EditorGUILayout.IntSlider("Lane", selectedEvent.Lane, 0, laneCount - 1);
-            ChartEventType nextType = (ChartEventType)EditorGUILayout.EnumPopup("Event Type", selectedEvent.EventType);
-
-            MonsterActionKind nextMonsterActionKind = selectedEvent.MonsterActionKind;
-            CameraCueKind nextCameraCueKind = selectedEvent.CameraCueKind;
-            CameraMovingKind nextCameraMovingKind = selectedEvent.CameraMovingKind;
-
-            if (nextType == ChartEventType.MonsterAction)
+            MonsterDefinition nextLaneMonsterDefinition = GetMonsterDefinitionForLane(nextLane);
+            CombatEventKind[] allowedEventKinds = GetAllowedCombatEventKinds(nextLaneMonsterDefinition);
+            string[] allowedEventKindLabels = BuildCombatEventKindLabels(allowedEventKinds);
+            int selectedKindIndex = FindCombatEventKindIndex(allowedEventKinds, selectedEvent.Kind);
+            selectedKindIndex = EditorGUILayout.Popup("Kind", selectedKindIndex, allowedEventKindLabels);
+            CombatEventKind nextKind = allowedEventKinds[selectedKindIndex];
+            CombatEventPhase nextPhase = (CombatEventPhase)EditorGUILayout.EnumPopup("Phase", selectedEvent.Phase);
+            int nextStepIndex = EditorGUILayout.IntField("Step Index", selectedEvent.StepIndex);
+            ReadyCueType nextReadyCueType = selectedEvent.ReadyCueType;
+            MonsterDefinition laneMonsterDefinition = nextLaneMonsterDefinition;
+            if (nextPhase == CombatEventPhase.Ready)
             {
-                nextMonsterActionKind = (MonsterActionKind)EditorGUILayout.EnumPopup("Monster Action", selectedEvent.MonsterActionKind);
-            }
-            else if (nextType == ChartEventType.CameraCue)
-            {
-                nextCameraCueKind = (CameraCueKind)EditorGUILayout.EnumPopup("Camera Cue", selectedEvent.CameraCueKind);
-            }
-            else if (nextType == ChartEventType.CameraMoving)
-            {
-                nextCameraMovingKind = (CameraMovingKind)EditorGUILayout.EnumPopup("Camera Moving", selectedEvent.CameraMovingKind);
+                ReadyCueType[] readyCueOptions = GetAllowedReadyCueTypes(laneMonsterDefinition);
+                string[] readyCueLabels = BuildReadyCueLabels(readyCueOptions);
+                int readyCueIndex = FindReadyCueIndex(readyCueOptions, selectedEvent.ReadyCueType);
+                readyCueIndex = EditorGUILayout.Popup("Ready Cue", readyCueIndex, readyCueLabels);
+                nextReadyCueType = readyCueOptions[readyCueIndex];
             }
 
+            bool shouldShowDirectionHint = ShouldShowDirectionHint(nextKind, nextPhase, nextReadyCueType);
+            PlayerRelativeDirection nextDirectionHint = shouldShowDirectionHint
+                ? selectedEvent.DirectionHint
+                : PlayerRelativeDirection.None;
+            if (shouldShowDirectionHint)
+            {
+                nextDirectionHint = (PlayerRelativeDirection)EditorGUILayout.EnumPopup("Direction (Player View)", selectedEvent.DirectionHint);
+                EditorGUILayout.HelpBox("Left/Right is always interpreted from the player viewpoint.", MessageType.Info);
+            }
             float nextNudgeMs = EditorGUILayout.FloatField("Nudge (ms)", selectedEvent.NudgeMs);
 
             if (EditorGUI.EndChangeCheck())
@@ -622,10 +699,14 @@ namespace KalBeat.Charting.Editor
                 RecordChartChange("Edit Chart Event");
                 selectedEvent.Beat = snapEnabled ? QuantizeBeat(nextBeat) : Mathf.Max(0f, nextBeat);
                 selectedEvent.Lane = Mathf.Clamp(nextLane, 0, laneCount - 1);
-                ApplyEventType(selectedEvent, nextType);
-                selectedEvent.MonsterActionKind = nextMonsterActionKind;
-                selectedEvent.CameraCueKind = nextCameraCueKind;
-                selectedEvent.CameraMovingKind = nextCameraMovingKind;
+                ApplyEventKind(selectedEvent, nextKind);
+                selectedEvent.Phase = nextPhase;
+                selectedEvent.StepIndex = Mathf.Max(0, nextStepIndex);
+                selectedEvent.ReadyCueType = nextPhase == CombatEventPhase.Ready ? nextReadyCueType : ReadyCueType.None;
+                selectedEvent.DirectionHint =
+                    nextKind != CombatEventKind.None && ShouldShowDirectionHint(nextKind, nextPhase, nextReadyCueType)
+                        ? nextDirectionHint
+                        : PlayerRelativeDirection.None;
                 selectedEvent.NudgeMs = nextNudgeMs;
                 cursorBeat = selectedEvent.Beat;
                 selectedLane = selectedEvent.Lane;
@@ -633,6 +714,8 @@ namespace KalBeat.Charting.Editor
                 MarkChartDirty();
             }
 
+            GUILayout.Space(8f);
+            DrawPatternPanel();
             GUILayout.Space(8f);
 
             if (GUILayout.Button("Move Event To Cursor"))
@@ -646,6 +729,57 @@ namespace KalBeat.Charting.Editor
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawPatternPanel()
+        {
+            GUILayout.Label("Pattern", EditorStyles.boldLabel);
+
+            if (selectedEvent == null || currentChart == null)
+            {
+                return;
+            }
+
+            if (selectedEvent.Phase != CombatEventPhase.Timing)
+            {
+                EditorGUILayout.HelpBox("Pattern generation uses the selected Timing event as the anchor.", MessageType.Info);
+                return;
+            }
+
+            LaneBindingData binding = GetLaneBindingForLane(selectedEvent.Lane);
+            if (binding == null || binding.BindingType != LaneBindingType.Monster || string.IsNullOrWhiteSpace(binding.BindingId))
+            {
+                EditorGUILayout.HelpBox("Bind a monster to this lane before applying a pattern.", MessageType.Info);
+                return;
+            }
+
+            MonsterDefinition monsterDefinition = FindMonsterDefinitionById(binding.BindingId);
+            if (monsterDefinition == null)
+            {
+                EditorGUILayout.HelpBox("The bound monster definition could not be found.", MessageType.Warning);
+                return;
+            }
+
+            PatternDefinition[] supportedPatterns = GetSupportedPatterns(monsterDefinition);
+            if (supportedPatterns.Length == 0)
+            {
+                EditorGUILayout.HelpBox("This monster does not expose any supported patterns yet.", MessageType.Warning);
+                return;
+            }
+
+            selectedPatternPopupIndex = Mathf.Clamp(selectedPatternPopupIndex, 0, supportedPatterns.Length - 1);
+            string[] popupOptions = BuildPatternPopupOptions(supportedPatterns);
+            selectedPatternPopupIndex = EditorGUILayout.Popup("Pattern", selectedPatternPopupIndex, popupOptions);
+
+            PatternDefinition selectedPatternDefinition = supportedPatterns[selectedPatternPopupIndex];
+            EditorGUILayout.LabelField("Lane Monster", GetMonsterDisplayLabel(monsterDefinition));
+            EditorGUILayout.LabelField("Combat Kind", selectedPatternDefinition.CombatKind.ToString());
+            EditorGUILayout.HelpBox(BuildPatternDescription(selectedPatternDefinition), MessageType.None);
+
+            if (GUILayout.Button("Apply Pattern To Selected Timing"))
+            {
+                ApplyPatternToSelectedTiming(selectedPatternDefinition);
+            }
         }
 
         private void HandleTimelineInput(Rect viewportRect)
@@ -729,11 +863,7 @@ namespace KalBeat.Charting.Editor
 
                 menu.AddItem(new GUIContent("Delete"), false, DeleteSelectedEvent);
                 menu.AddSeparator(string.Empty);
-                menu.AddItem(new GUIContent("Convert/None"), false, () => ConvertSelectedEvent(ChartEventType.None));
-                menu.AddItem(new GUIContent("Convert/AttackTiming"), false, () => ConvertSelectedEvent(ChartEventType.AttackTiming));
-                menu.AddItem(new GUIContent("Convert/MonsterAction"), false, () => ConvertSelectedEvent(ChartEventType.MonsterAction));
-                menu.AddItem(new GUIContent("Convert/CameraCue"), false, () => ConvertSelectedEvent(ChartEventType.CameraCue));
-                menu.AddItem(new GUIContent("Convert/CameraMoving"), false, () => ConvertSelectedEvent(ChartEventType.CameraMoving));
+                AddConvertMenuItems(menu);
             }
             else
             {
@@ -742,11 +872,7 @@ namespace KalBeat.Charting.Editor
                 selectedLane = GetLaneFromPosition(localPosition.y);
                 MovePreviewToCursorAndPause(wasPlaying);
 
-                menu.AddItem(new GUIContent("Add/None"), false, () => AddOrUpdateEventAtCursor(ChartEventType.None));
-                menu.AddItem(new GUIContent("Add/AttackTiming"), false, () => AddOrUpdateEventAtCursor(ChartEventType.AttackTiming));
-                menu.AddItem(new GUIContent("Add/MonsterAction"), false, () => AddOrUpdateEventAtCursor(ChartEventType.MonsterAction));
-                menu.AddItem(new GUIContent("Add/CameraCue"), false, () => AddOrUpdateEventAtCursor(ChartEventType.CameraCue));
-                menu.AddItem(new GUIContent("Add/CameraMoving"), false, () => AddOrUpdateEventAtCursor(ChartEventType.CameraMoving));
+                AddCreateMenuItems(menu);
             }
 
             menu.ShowAsContext();
@@ -767,7 +893,7 @@ namespace KalBeat.Charting.Editor
 
             if (currentEvent.keyCode == KeyCode.Space)
             {
-                AddOrUpdateEventAtCursor(ChartEventType.None);
+                AddOrUpdateEventAtCursor(CombatEventKind.None);
                 currentEvent.Use();
             }
             else if (currentEvent.keyCode == KeyCode.Delete || currentEvent.keyCode == KeyCode.Backspace)
@@ -782,7 +908,7 @@ namespace KalBeat.Charting.Editor
             }
         }
 
-        private void AddOrUpdateEventAtCursor(ChartEventType eventType)
+        private void AddOrUpdateEventAtCursor(CombatEventKind eventKind)
         {
             if (currentChart == null)
             {
@@ -801,12 +927,16 @@ namespace KalBeat.Charting.Editor
                 {
                     Beat = targetBeat,
                     Lane = targetLane,
+                    Phase = CombatEventPhase.Timing,
+                    StepIndex = 0,
+                    ReadyCueType = ReadyCueType.None,
+                    DirectionHint = PlayerRelativeDirection.None,
                     NudgeMs = 0f
                 };
                 currentChart.Events.Add(eventData);
             }
 
-            ApplyEventType(eventData, eventType);
+            ApplyEventKind(eventData, eventKind);
             selectedEvent = eventData;
             cursorBeat = eventData.Beat;
             selectedLane = eventData.Lane;
@@ -815,7 +945,7 @@ namespace KalBeat.Charting.Editor
             MarkChartDirty();
         }
 
-        private void ConvertSelectedEvent(ChartEventType eventType)
+        private void ConvertSelectedEvent(CombatEventKind eventKind)
         {
             if (selectedEvent == null)
             {
@@ -823,29 +953,123 @@ namespace KalBeat.Charting.Editor
             }
 
             RecordChartChange("Convert Chart Event");
-            ApplyEventType(selectedEvent, eventType);
+            ApplyEventKind(selectedEvent, eventKind);
             SortEvents();
             MarkChartDirty();
         }
 
-        private void ApplyEventType(ChartEventData eventData, ChartEventType eventType)
+        private void ApplyEventKind(ChartEventData eventData, CombatEventKind eventKind)
         {
-            eventData.EventType = eventType;
+            eventData.Kind = eventKind;
 
-            if (eventType != ChartEventType.MonsterAction)
+            if (eventKind == CombatEventKind.None)
             {
-                eventData.MonsterActionKind = MonsterActionKind.None;
+                eventData.Phase = CombatEventPhase.Timing;
+                eventData.StepIndex = 0;
+                eventData.ReadyCueType = ReadyCueType.None;
+                eventData.DirectionHint = PlayerRelativeDirection.None;
+                eventData.MovementResolveMode = MovementResolveMode.None;
+                eventData.MoveUnits = 0f;
+                eventData.TargetBandUnits = 0f;
+                eventData.MovementDirectionHint = MovementDirectionHint.None;
+                eventData.EntryBandUnits = 0f;
+            }
+        }
+
+        private void ApplyPatternToSelectedTiming(PatternDefinition patternDefinition)
+        {
+            if (currentChart == null || selectedEvent == null || patternDefinition == null)
+            {
+                return;
             }
 
-            if (eventType != ChartEventType.CameraCue)
+            if (selectedEvent.Phase != CombatEventPhase.Timing)
             {
-                eventData.CameraCueKind = CameraCueKind.None;
+                EditorUtility.DisplayDialog("Pattern Apply Failed", "Select a Timing event first.", "OK");
+                return;
             }
 
-            if (eventType != ChartEventType.CameraMoving)
+            if (!TryBuildPatternSteps(patternDefinition, out List<PatternStepDefinition> orderedSteps, out int timingStepIndex, out string errorMessage))
             {
-                eventData.CameraMovingKind = CameraMovingKind.None;
+                EditorUtility.DisplayDialog("Pattern Apply Failed", errorMessage, "OK");
+                return;
             }
+
+            int targetLane = selectedEvent.Lane;
+            float targetTimingBeat = selectedEvent.Beat;
+            List<ChartEventData> targetEvents = new List<ChartEventData>(orderedSteps.Count);
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                float targetBeat = targetTimingBeat + stepDefinition.BeatOffsetFromTiming;
+                if (targetBeat < 0f)
+                {
+                    EditorUtility.DisplayDialog("Pattern Apply Failed", "Pattern steps cannot be placed before beat 0.", "OK");
+                    return;
+                }
+
+                if (i == timingStepIndex)
+                {
+                    targetEvents.Add(selectedEvent);
+                    continue;
+                }
+
+                ChartEventData existingEvent = FindEventInSlot(targetBeat, targetLane);
+                if (existingEvent == null)
+                {
+                    targetEvents.Add(null);
+                    continue;
+                }
+
+                if (existingEvent.Kind == CombatEventKind.None)
+                {
+                    targetEvents.Add(existingEvent);
+                    continue;
+                }
+
+                EditorUtility.DisplayDialog(
+                    "Pattern Apply Failed",
+                    $"A real event already exists at beat {targetBeat:0.###} on lane {targetLane + 1}. Remove it before applying this pattern.",
+                    "OK");
+                return;
+            }
+
+            RecordChartChange("Apply Monster Pattern");
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                float targetBeat = targetTimingBeat + stepDefinition.BeatOffsetFromTiming;
+                ChartEventData targetEvent = targetEvents[i];
+
+                if (targetEvent == null)
+                {
+                    targetEvent = new ChartEventData();
+                    currentChart.Events.Add(targetEvent);
+                }
+
+                float existingNudgeMs = ReferenceEquals(targetEvent, selectedEvent) ? targetEvent.NudgeMs : 0f;
+
+                targetEvent.Beat = targetBeat;
+                targetEvent.Lane = targetLane;
+                targetEvent.Kind = patternDefinition.CombatKind;
+                targetEvent.Phase = stepDefinition.Phase;
+                targetEvent.StepIndex = i;
+                targetEvent.ReadyCueType = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.ReadyCueType : ReadyCueType.None;
+                targetEvent.DirectionHint = stepDefinition.DirectionHint;
+                targetEvent.MovementResolveMode = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementResolveMode : MovementResolveMode.None;
+                targetEvent.MoveUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MoveUnits : 0f;
+                targetEvent.TargetBandUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.TargetBandUnits : 0f;
+                targetEvent.MovementDirectionHint = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementDirectionHint : MovementDirectionHint.None;
+                targetEvent.EntryBandUnits = patternDefinition.EntryBandUnits;
+                targetEvent.NudgeMs = existingNudgeMs;
+            }
+
+            selectedEvent = targetEvents[timingStepIndex];
+            SortEvents();
+            MarkChartDirty();
+            ShowNotification(new GUIContent($"Applied pattern '{GetPatternDisplayLabel(patternDefinition)}'."));
         }
 
         private void DeleteSelectedEvent()
@@ -905,6 +1129,13 @@ namespace KalBeat.Charting.Editor
             if (validation.HasError)
             {
                 EditorUtility.DisplayDialog("Cannot Save Chart", "Chart has validation errors. Resolve errors before saving.", "OK");
+                return;
+            }
+
+            if (!ChartResolvedTimelineBuilder.TryGenerate(currentChart, FindMonsterDefinitionById, out string errorMessage))
+            {
+                EditorUtility.DisplayDialog("Cannot Save Chart", errorMessage, "OK");
+                EditorUtility.SetDirty(currentChart);
                 return;
             }
 
@@ -1487,6 +1718,22 @@ namespace KalBeat.Charting.Editor
             return null;
         }
 
+        private LaneBindingData GetLaneBindingForLane(int lane)
+        {
+            if (currentChart == null || currentChart.Meta == null)
+            {
+                return null;
+            }
+
+            List<LaneBindingData> laneBindings = currentChart.Meta.LaneBindings;
+            if (laneBindings == null || lane < 0 || lane >= laneBindings.Count)
+            {
+                return null;
+            }
+
+            return laneBindings[lane];
+        }
+
         private int GetSlotIndex(float beat)
         {
             int gridDivision = currentChart != null ? Mathf.Max(1, currentChart.Meta.GridDivision) : 1;
@@ -1526,37 +1773,82 @@ namespace KalBeat.Charting.Editor
             return eventData.Lane;
         }
 
-        private static Color GetEventColor(ChartEventType eventType)
+        private static Color GetEventColor(ChartEventData eventData)
         {
-            switch (eventType)
+            Color baseColor;
+            switch (eventData.Kind)
             {
-                case ChartEventType.AttackTiming:
-                    return new Color(0.87f, 0.2f, 0.2f, 1f);
-                case ChartEventType.MonsterAction:
-                    return new Color(0.21f, 0.66f, 0.31f, 1f);
-                case ChartEventType.CameraCue:
-                    return new Color(0.15f, 0.55f, 0.9f, 1f);
-                case ChartEventType.CameraMoving:
-                    return new Color(0.72f, 0.46f, 0.14f, 1f);
+                case CombatEventKind.MeleeThreatCounterable:
+                    baseColor = new Color(0.81f, 0.24f, 0.24f, 1f);
+                    break;
+                case CombatEventKind.MeleeThreatDodgeOnly:
+                    baseColor = new Color(0.88f, 0.48f, 0.16f, 1f);
+                    break;
+                case CombatEventKind.PlayerDashAttack:
+                    baseColor = new Color(0.2f, 0.66f, 0.3f, 1f);
+                    break;
+                case CombatEventKind.PlayerRangedAttack:
+                    baseColor = new Color(0.17f, 0.6f, 0.78f, 1f);
+                    break;
+                case CombatEventKind.RangedThreatCounterable:
+                    baseColor = new Color(0.56f, 0.39f, 0.82f, 1f);
+                    break;
+                case CombatEventKind.RangedThreatDodgeOnly:
+                    baseColor = new Color(0.76f, 0.26f, 0.63f, 1f);
+                    break;
                 default:
-                    return new Color(0.55f, 0.55f, 0.58f, 1f);
+                    baseColor = new Color(0.55f, 0.55f, 0.58f, 1f);
+                    break;
             }
+
+            if (eventData.Phase == CombatEventPhase.Ready)
+            {
+                return new Color(baseColor.r * 0.75f, baseColor.g * 0.75f, baseColor.b * 0.75f, baseColor.a);
+            }
+
+            return baseColor;
         }
 
         private static string GetEventShortLabel(ChartEventData eventData)
         {
-            switch (eventData.EventType)
+            string prefix;
+            switch (eventData.Kind)
             {
-                case ChartEventType.AttackTiming:
-                    return "AT";
-                case ChartEventType.MonsterAction:
-                    return "MA";
-                case ChartEventType.CameraCue:
-                    return "CQ";
-                case ChartEventType.CameraMoving:
-                    return "CM";
+                case CombatEventKind.MeleeThreatCounterable:
+                    prefix = "MC";
+                    break;
+                case CombatEventKind.MeleeThreatDodgeOnly:
+                    prefix = "MD";
+                    break;
+                case CombatEventKind.PlayerDashAttack:
+                    prefix = "PD";
+                    break;
+                case CombatEventKind.PlayerRangedAttack:
+                    prefix = "PR";
+                    break;
+                case CombatEventKind.RangedThreatCounterable:
+                    prefix = "RC";
+                    break;
+                case CombatEventKind.RangedThreatDodgeOnly:
+                    prefix = "RD";
+                    break;
                 default:
                     return "N";
+            }
+
+            if (eventData.Phase == CombatEventPhase.Timing)
+            {
+                return $"{prefix}T";
+            }
+
+            switch (eventData.ReadyCueType)
+            {
+                case ReadyCueType.Move:
+                    return $"{prefix}M";
+                case ReadyCueType.Pose:
+                    return $"{prefix}P";
+                default:
+                    return $"{prefix}R";
             }
         }
 
@@ -1599,8 +1891,529 @@ namespace KalBeat.Charting.Editor
                     return laneCompare;
                 }
 
-                return left.EventType.CompareTo(right.EventType);
+                int kindCompare = left.Kind.CompareTo(right.Kind);
+                if (kindCompare != 0)
+                {
+                    return kindCompare;
+                }
+
+                int phaseCompare = left.Phase.CompareTo(right.Phase);
+                if (phaseCompare != 0)
+                {
+                    return phaseCompare;
+                }
+
+                return left.StepIndex.CompareTo(right.StepIndex);
             });
+        }
+
+        private void AddCreateMenuItems(GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Add/None"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.None));
+            menu.AddItem(new GUIContent("Add/Melee Counterable"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.MeleeThreatCounterable));
+            menu.AddItem(new GUIContent("Add/Melee Dodge"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.MeleeThreatDodgeOnly));
+            menu.AddItem(new GUIContent("Add/Player Dash"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.PlayerDashAttack));
+            menu.AddItem(new GUIContent("Add/Player Ranged"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.PlayerRangedAttack));
+            menu.AddItem(new GUIContent("Add/Ranged Counterable"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.RangedThreatCounterable));
+            menu.AddItem(new GUIContent("Add/Ranged Dodge"), false, () => AddOrUpdateEventAtCursor(CombatEventKind.RangedThreatDodgeOnly));
+        }
+
+        private void AddConvertMenuItems(GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Convert/None"), false, () => ConvertSelectedEvent(CombatEventKind.None));
+            menu.AddItem(new GUIContent("Convert/Melee Counterable"), false, () => ConvertSelectedEvent(CombatEventKind.MeleeThreatCounterable));
+            menu.AddItem(new GUIContent("Convert/Melee Dodge"), false, () => ConvertSelectedEvent(CombatEventKind.MeleeThreatDodgeOnly));
+            menu.AddItem(new GUIContent("Convert/Player Dash"), false, () => ConvertSelectedEvent(CombatEventKind.PlayerDashAttack));
+            menu.AddItem(new GUIContent("Convert/Player Ranged"), false, () => ConvertSelectedEvent(CombatEventKind.PlayerRangedAttack));
+            menu.AddItem(new GUIContent("Convert/Ranged Counterable"), false, () => ConvertSelectedEvent(CombatEventKind.RangedThreatCounterable));
+            menu.AddItem(new GUIContent("Convert/Ranged Dodge"), false, () => ConvertSelectedEvent(CombatEventKind.RangedThreatDodgeOnly));
+        }
+
+        private static MonsterDefinition[] LoadMonsterDefinitions()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:MonsterDefinition");
+            List<MonsterDefinition> monsterDefinitions = new List<MonsterDefinition>(guids.Length);
+
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guids[i]);
+                MonsterDefinition monsterDefinition = AssetDatabase.LoadAssetAtPath<MonsterDefinition>(assetPath);
+                if (monsterDefinition != null)
+                {
+                    monsterDefinitions.Add(monsterDefinition);
+                }
+            }
+
+            monsterDefinitions.Sort((left, right) =>
+                string.Compare(GetMonsterDisplayLabel(left), GetMonsterDisplayLabel(right), StringComparison.OrdinalIgnoreCase));
+
+            return monsterDefinitions.ToArray();
+        }
+
+        private static PatternDefinition[] GetSupportedPatterns(MonsterDefinition monsterDefinition)
+        {
+            if (monsterDefinition == null || monsterDefinition.SupportedPatterns == null || monsterDefinition.SupportedPatterns.Count == 0)
+            {
+                return Array.Empty<PatternDefinition>();
+            }
+
+            List<PatternDefinition> supportedPatterns = new List<PatternDefinition>(monsterDefinition.SupportedPatterns.Count);
+            for (int i = 0; i < monsterDefinition.SupportedPatterns.Count; i++)
+            {
+                PatternDefinition patternDefinition = monsterDefinition.SupportedPatterns[i];
+                if (patternDefinition != null && monsterDefinition.SupportsPattern(patternDefinition))
+                {
+                    supportedPatterns.Add(patternDefinition);
+                }
+            }
+
+            supportedPatterns.Sort((left, right) =>
+                string.Compare(GetPatternDisplayLabel(left), GetPatternDisplayLabel(right), StringComparison.OrdinalIgnoreCase));
+
+            return supportedPatterns.ToArray();
+        }
+
+        private static string[] BuildLaneBindingPopupOptions(MonsterDefinition[] monsterDefinitions)
+        {
+            string[] options = new string[monsterDefinitions.Length + 1];
+            options[0] = "None";
+
+            for (int i = 0; i < monsterDefinitions.Length; i++)
+            {
+                options[i + 1] = GetMonsterDisplayLabel(monsterDefinitions[i]);
+            }
+
+            return options;
+        }
+
+        private static string[] BuildPatternPopupOptions(PatternDefinition[] patternDefinitions)
+        {
+            string[] options = new string[patternDefinitions.Length];
+
+            for (int i = 0; i < patternDefinitions.Length; i++)
+            {
+                options[i] = GetPatternDisplayLabel(patternDefinitions[i]);
+            }
+
+            return options;
+        }
+
+        private static int GetLaneBindingSelectionIndex(LaneBindingData binding, MonsterDefinition[] monsterDefinitions)
+        {
+            if (binding == null || binding.BindingType != LaneBindingType.Monster || string.IsNullOrWhiteSpace(binding.BindingId))
+            {
+                return 0;
+            }
+
+            for (int i = 0; i < monsterDefinitions.Length; i++)
+            {
+                if (string.Equals(monsterDefinitions[i].MonsterId, binding.BindingId, StringComparison.Ordinal))
+                {
+                    return i + 1;
+                }
+            }
+
+            return 0;
+        }
+
+        private static void ApplyLaneBindingSelection(LaneBindingData binding, int selectionIndex, MonsterDefinition[] monsterDefinitions)
+        {
+            if (binding == null)
+            {
+                return;
+            }
+
+            if (selectionIndex <= 0 || selectionIndex > monsterDefinitions.Length)
+            {
+                binding.BindingType = LaneBindingType.None;
+                binding.BindingId = string.Empty;
+                return;
+            }
+
+            MonsterDefinition selectedMonster = monsterDefinitions[selectionIndex - 1];
+            binding.BindingType = LaneBindingType.Monster;
+            binding.BindingId = selectedMonster != null ? selectedMonster.MonsterId : string.Empty;
+        }
+
+        private static string GetMonsterDisplayLabel(MonsterDefinition monsterDefinition)
+        {
+            if (monsterDefinition == null)
+            {
+                return "Missing Monster";
+            }
+
+            if (!string.IsNullOrWhiteSpace(monsterDefinition.DisplayName))
+            {
+                return monsterDefinition.DisplayName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(monsterDefinition.MonsterId))
+            {
+                return monsterDefinition.MonsterId;
+            }
+
+            return monsterDefinition.name;
+        }
+
+        private static string GetPatternDisplayLabel(PatternDefinition patternDefinition)
+        {
+            if (patternDefinition == null)
+            {
+                return "Missing Pattern";
+            }
+
+            if (!string.IsNullOrWhiteSpace(patternDefinition.DisplayName))
+            {
+                return patternDefinition.DisplayName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(patternDefinition.PatternId))
+            {
+                return patternDefinition.PatternId;
+            }
+
+            return patternDefinition.name;
+        }
+
+        private MonsterDefinition FindMonsterDefinitionById(string monsterId)
+        {
+            if (string.IsNullOrWhiteSpace(monsterId))
+            {
+                return null;
+            }
+
+            MonsterDefinition[] monsterDefinitions = LoadMonsterDefinitions();
+            for (int i = 0; i < monsterDefinitions.Length; i++)
+            {
+                MonsterDefinition monsterDefinition = monsterDefinitions[i];
+                if (monsterDefinition != null && string.Equals(monsterDefinition.MonsterId, monsterId, StringComparison.Ordinal))
+                {
+                    return monsterDefinition;
+                }
+            }
+
+            return null;
+        }
+
+        private MonsterDefinition GetMonsterDefinitionForLane(int lane)
+        {
+            if (currentChart == null || currentChart.Meta == null)
+            {
+                return null;
+            }
+
+            List<LaneBindingData> laneBindings = currentChart.Meta.LaneBindings;
+            if (laneBindings == null || lane < 0 || lane >= laneBindings.Count)
+            {
+                return null;
+            }
+
+            LaneBindingData binding = laneBindings[lane];
+            if (binding == null || binding.BindingType != LaneBindingType.Monster || string.IsNullOrWhiteSpace(binding.BindingId))
+            {
+                return null;
+            }
+
+            return FindMonsterDefinitionById(binding.BindingId);
+        }
+
+        private static ReadyCueType[] GetAllowedReadyCueTypes(MonsterDefinition monsterDefinition)
+        {
+            if (monsterDefinition != null && !monsterDefinition.SupportsReadyMove)
+            {
+                return new[] { ReadyCueType.None, ReadyCueType.Pose };
+            }
+
+            return new[] { ReadyCueType.None, ReadyCueType.Pose, ReadyCueType.Move };
+        }
+
+        private static CombatEventKind[] GetAllowedCombatEventKinds(MonsterDefinition monsterDefinition)
+        {
+            if (monsterDefinition == null || monsterDefinition.SupportedPatterns == null || monsterDefinition.SupportedPatterns.Count == 0)
+            {
+                return new[] { CombatEventKind.None };
+            }
+
+            List<CombatEventKind> combatEventKinds = new List<CombatEventKind> { CombatEventKind.None };
+            for (int i = 0; i < monsterDefinition.SupportedPatterns.Count; i++)
+            {
+                PatternDefinition patternDefinition = monsterDefinition.SupportedPatterns[i];
+                if (patternDefinition == null || !monsterDefinition.SupportsPattern(patternDefinition))
+                {
+                    continue;
+                }
+
+                if (!combatEventKinds.Contains(patternDefinition.CombatKind))
+                {
+                    combatEventKinds.Add(patternDefinition.CombatKind);
+                }
+            }
+
+            return combatEventKinds.ToArray();
+        }
+
+        private static string[] BuildCombatEventKindLabels(CombatEventKind[] combatEventKinds)
+        {
+            string[] labels = new string[combatEventKinds.Length];
+            for (int i = 0; i < combatEventKinds.Length; i++)
+            {
+                labels[i] = combatEventKinds[i].ToString();
+            }
+
+            return labels;
+        }
+
+        private static int FindCombatEventKindIndex(CombatEventKind[] combatEventKinds, CombatEventKind selectedCombatEventKind)
+        {
+            for (int i = 0; i < combatEventKinds.Length; i++)
+            {
+                if (combatEventKinds[i] == selectedCombatEventKind)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+
+        private static bool ContainsCombatEventKind(CombatEventKind[] combatEventKinds, CombatEventKind targetCombatEventKind)
+        {
+            for (int i = 0; i < combatEventKinds.Length; i++)
+            {
+                if (combatEventKinds[i] == targetCombatEventKind)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string[] BuildReadyCueLabels(ReadyCueType[] readyCueTypes)
+        {
+            string[] labels = new string[readyCueTypes.Length];
+            for (int i = 0; i < readyCueTypes.Length; i++)
+            {
+                labels[i] = readyCueTypes[i].ToString();
+            }
+
+            return labels;
+        }
+
+        private static int FindReadyCueIndex(ReadyCueType[] readyCueTypes, ReadyCueType selectedReadyCueType)
+        {
+            for (int i = 0; i < readyCueTypes.Length; i++)
+            {
+                if (readyCueTypes[i] == selectedReadyCueType)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+
+        private static bool ShouldShowDirectionHint(
+            CombatEventKind combatEventKind,
+            CombatEventPhase combatEventPhase,
+            ReadyCueType readyCueType)
+        {
+            if (combatEventKind == CombatEventKind.None)
+            {
+                return false;
+            }
+
+            if (combatEventPhase == CombatEventPhase.Ready)
+            {
+                return readyCueType == ReadyCueType.Move;
+            }
+
+            return combatEventKind == CombatEventKind.MeleeThreatDodgeOnly;
+        }
+
+        private static string BuildPatternDescription(PatternDefinition patternDefinition)
+        {
+            if (patternDefinition == null || patternDefinition.Steps == null || patternDefinition.Steps.Count == 0)
+            {
+                return "No pattern steps are defined.";
+            }
+
+            List<PatternStepDefinition> orderedSteps = new List<PatternStepDefinition>(patternDefinition.Steps.Count);
+            for (int i = 0; i < patternDefinition.Steps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = patternDefinition.Steps[i];
+                if (stepDefinition != null)
+                {
+                    orderedSteps.Add(stepDefinition);
+                }
+            }
+
+            orderedSteps.Sort(ComparePatternSteps);
+            List<string> stepTexts = new List<string>(orderedSteps.Count);
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (stepDefinition.Phase == CombatEventPhase.Timing)
+                {
+                    string timingText = stepDefinition.DirectionHint == PlayerRelativeDirection.None
+                        ? "Timing"
+                        : $"Timing ({stepDefinition.DirectionHint})";
+                    stepTexts.Add(timingText);
+                    continue;
+                }
+
+                string cueText = stepDefinition.ReadyCueType == ReadyCueType.None
+                    ? "Ready"
+                    : stepDefinition.ReadyCueType.ToString();
+
+                if (stepDefinition.ReadyCueType == ReadyCueType.Move)
+                {
+                    string moveDirectionText = stepDefinition.MovementDirectionHint == MovementDirectionHint.None
+                        ? "None"
+                        : stepDefinition.MovementDirectionHint.ToString();
+                    cueText = $"{cueText} [{stepDefinition.MovementResolveMode}, {moveDirectionText}, {stepDefinition.MoveUnits:0.###}u -> Band {stepDefinition.TargetBandUnits:0.###}]";
+                }
+                else if (stepDefinition.DirectionHint != PlayerRelativeDirection.None)
+                {
+                    cueText = $"{cueText} ({stepDefinition.DirectionHint})";
+                }
+
+                stepTexts.Add(cueText);
+            }
+
+            return string.Join(" -> ", stepTexts);
+        }
+
+        private static bool TryBuildPatternSteps(
+            PatternDefinition patternDefinition,
+            out List<PatternStepDefinition> orderedSteps,
+            out int timingStepIndex,
+            out string errorMessage)
+        {
+            orderedSteps = new List<PatternStepDefinition>();
+            timingStepIndex = -1;
+            errorMessage = string.Empty;
+
+            if (patternDefinition == null)
+            {
+                errorMessage = "Pattern definition is missing.";
+                return false;
+            }
+
+            if (patternDefinition.Steps == null || patternDefinition.Steps.Count == 0)
+            {
+                errorMessage = "Pattern definition has no steps.";
+                return false;
+            }
+
+            for (int i = 0; i < patternDefinition.Steps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = patternDefinition.Steps[i];
+                if (stepDefinition != null)
+                {
+                    orderedSteps.Add(stepDefinition);
+                }
+            }
+
+            if (orderedSteps.Count == 0)
+            {
+                errorMessage = "Pattern definition has no valid steps.";
+                return false;
+            }
+
+            orderedSteps.Sort(ComparePatternSteps);
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (stepDefinition.Phase != CombatEventPhase.Timing)
+                {
+                    continue;
+                }
+
+                if (!Mathf.Approximately(stepDefinition.BeatOffsetFromTiming, 0f))
+                {
+                    errorMessage = "Timing step must be placed at beat offset 0.";
+                    return false;
+                }
+
+                if (timingStepIndex >= 0)
+                {
+                    errorMessage = "Pattern definition can only contain one Timing step.";
+                    return false;
+                }
+
+                timingStepIndex = i;
+            }
+
+            if (timingStepIndex < 0)
+            {
+                errorMessage = "Pattern definition must contain one Timing step at beat offset 0.";
+                return false;
+            }
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (stepDefinition.Phase != CombatEventPhase.Ready || stepDefinition.ReadyCueType != ReadyCueType.Move)
+                {
+                    continue;
+                }
+
+                if (stepDefinition.MovementResolveMode == MovementResolveMode.None)
+                {
+                    errorMessage = "Ready Move step must set MovementResolveMode.";
+                    return false;
+                }
+
+                if (stepDefinition.MoveUnits <= 0f)
+                {
+                    errorMessage = "Ready Move step must set MoveUnits greater than 0.";
+                    return false;
+                }
+
+                if (stepDefinition.TargetBandUnits < 0f)
+                {
+                    errorMessage = "Ready Move step must set TargetBandUnits greater than or equal to 0.";
+                    return false;
+                }
+
+                if (stepDefinition.MovementResolveMode == MovementResolveMode.SideMoveOnBand &&
+                    stepDefinition.MovementDirectionHint == MovementDirectionHint.None)
+                {
+                    errorMessage = "SideMoveOnBand step must set MovementDirectionHint.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static int ComparePatternSteps(PatternStepDefinition left, PatternStepDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int beatCompare = left.BeatOffsetFromTiming.CompareTo(right.BeatOffsetFromTiming);
+            if (beatCompare != 0)
+            {
+                return beatCompare;
+            }
+
+            return left.Phase.CompareTo(right.Phase);
         }
 
         private void RecordChartChange(string undoLabel)
@@ -1615,6 +2428,7 @@ namespace KalBeat.Charting.Editor
         {
             if (currentChart != null)
             {
+                currentChart.InvalidateResolvedTimeline("Chart source data changed.");
                 EditorUtility.SetDirty(currentChart);
                 lastValidation = ChartValidator.Validate(currentChart);
                 Repaint();

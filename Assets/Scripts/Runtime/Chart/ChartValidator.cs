@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KalBeat.Combat;
 
 namespace KalBeat.Charting
 {
@@ -17,11 +18,16 @@ namespace KalBeat.Charting
         private const string ErrorCodeEventNull = "event.null";
         private const string ErrorCodeEventBeatInvalid = "event.beat.invalid";
         private const string ErrorCodeEventLaneInvalid = "event.lane.invalid";
+        private const string ErrorCodeEventStepIndexInvalid = "event.step_index.invalid";
+        private const string ErrorCodeEntryBandMissing = "event.entry_band.missing";
+        private const string ErrorCodeMoveResolveModeMissing = "event.move.resolve_mode.missing";
+        private const string ErrorCodeMoveUnitsInvalid = "event.move.units.invalid";
+        private const string ErrorCodeTargetBandInvalid = "event.move.target_band.invalid";
+        private const string ErrorCodeMoveDirectionMissing = "event.move.direction.missing";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
-        private const string WarningCodeEventTypeNone = "event.type.none";
-        private const string WarningCodeMonsterActionKindNone = "event.monster_action_kind.none";
-        private const string WarningCodeCameraCueKindNone = "event.camera_cue_kind.none";
-        private const string WarningCodeCameraMovingKindNone = "event.camera_moving_kind.none";
+        private const string WarningCodeEventKindNone = "event.kind.none";
+        private const string WarningCodeReadyCueMissing = "event.ready_cue.missing";
+        private const string WarningCodeDirectionMissing = "event.direction.missing";
         private const string WarningCodeNudgeInvalid = "event.nudge.invalid";
 
         public static ChartValidationResult Validate(ChartData chart)
@@ -40,6 +46,8 @@ namespace KalBeat.Charting
                 result.AddError(ErrorCodeMetaNull, "ChartData meta is null.");
                 return result;
             }
+
+            meta.SyncLaneBindingsWithLaneCount();
 
             if (meta.Bpm <= 0f || float.IsNaN(meta.Bpm) || float.IsInfinity(meta.Bpm))
             {
@@ -105,21 +113,55 @@ namespace KalBeat.Charting
                         i);
                 }
 
-                if (eventData.EventType == ChartEventType.None)
+                if (eventData.StepIndex < 0)
                 {
-                    result.AddWarning(WarningCodeEventTypeNone, "Event type is None. This event will be ignored at runtime.", i);
+                    result.AddError(ErrorCodeEventStepIndexInvalid, "StepIndex must be greater than or equal to 0.", i);
                 }
-                else if (eventData.EventType == ChartEventType.MonsterAction && eventData.MonsterActionKind == MonsterActionKind.None)
+
+                if (eventData.Kind != CombatEventKind.None &&
+                    eventData.StepIndex == 0 &&
+                    eventData.EntryBandUnits <= 0f)
                 {
-                    result.AddWarning(WarningCodeMonsterActionKindNone, "MonsterAction event should set MonsterActionKind.", i);
+                    result.AddError(ErrorCodeEntryBandMissing, "StepIndex 0 event must set EntryBandUnits greater than 0.", i);
                 }
-                else if (eventData.EventType == ChartEventType.CameraCue && eventData.CameraCueKind == CameraCueKind.None)
+
+                if (eventData.Kind == CombatEventKind.None)
                 {
-                    result.AddWarning(WarningCodeCameraCueKindNone, "CameraCue event should set CameraCueKind.", i);
+                    result.AddWarning(WarningCodeEventKindNone, "Event kind is None. This event will be ignored at runtime.", i);
                 }
-                else if (eventData.EventType == ChartEventType.CameraMoving && eventData.CameraMovingKind == CameraMovingKind.None)
+
+                if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType == ReadyCueType.None)
                 {
-                    result.AddWarning(WarningCodeCameraMovingKindNone, "CameraMoving event should set CameraMovingKind.", i);
+                    result.AddWarning(WarningCodeReadyCueMissing, "Ready phase event should set ReadyCueType.", i);
+                }
+
+                if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType == ReadyCueType.Move)
+                {
+                    if (eventData.MovementResolveMode == MovementResolveMode.None)
+                    {
+                        result.AddError(ErrorCodeMoveResolveModeMissing, "Ready Move event must set MovementResolveMode.", i);
+                    }
+
+                    if (eventData.MoveUnits <= 0f)
+                    {
+                        result.AddError(ErrorCodeMoveUnitsInvalid, "Ready Move event must set MoveUnits greater than 0.", i);
+                    }
+
+                    if (eventData.TargetBandUnits < 0f)
+                    {
+                        result.AddError(ErrorCodeTargetBandInvalid, "Ready Move event must set TargetBandUnits greater than or equal to 0.", i);
+                    }
+
+                    if (eventData.MovementResolveMode == MovementResolveMode.SideMoveOnBand &&
+                        eventData.MovementDirectionHint == MovementDirectionHint.None)
+                    {
+                        result.AddError(ErrorCodeMoveDirectionMissing, "SideMoveOnBand event must set MovementDirectionHint.", i);
+                    }
+                }
+
+                if (RequiresDirectionHint(eventData) && eventData.DirectionHint == PlayerRelativeDirection.None)
+                {
+                    result.AddWarning(WarningCodeDirectionMissing, "MeleeThreatDodgeOnly should set DirectionHint.", i);
                 }
 
                 if (float.IsNaN(eventData.NudgeMs) || float.IsInfinity(eventData.NudgeMs))
@@ -152,6 +194,21 @@ namespace KalBeat.Charting
         {
             double scaled = beat * gridDivision;
             return (int)Math.Round(scaled, MidpointRounding.AwayFromZero);
+        }
+
+        private static bool RequiresDirectionHint(ChartEventData eventData)
+        {
+            if (eventData == null || eventData.Kind == CombatEventKind.None)
+            {
+                return false;
+            }
+
+            if (eventData.Phase == CombatEventPhase.Ready)
+            {
+                return eventData.ReadyCueType == ReadyCueType.Move;
+            }
+
+            return eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly;
         }
     }
 }

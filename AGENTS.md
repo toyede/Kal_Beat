@@ -8,6 +8,21 @@
   - Runtime code: `Assets/Scripts/Runtime`
   - Editor tools code: `Assets/Scripts/Editor`
 - Design reference: `docs/game_design.md`
+- Monster design reference: `docs/monster_design.md`
+
+## Unity CLI Pre-check
+Before executing any Unity-related command:
+1. Run: `unity-cli status`
+   - If `unity-cli` is not available in PATH, use:
+     `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe status`
+2. Verify:
+   - `ready` is present
+   - Project path is valid
+   - Unity Editor is connected
+3. If not ready:
+   - Stop execution
+   - Ask the user to open Unity or fix the connection
+4. Only proceed if Unity is connected
 
 ## Workflow for New Features
 When adding a new feature:
@@ -15,6 +30,12 @@ When adding a new feature:
 2. Extend existing structure and avoid rewrites.
 3. Modify the minimum number of files.
 4. If structural changes are necessary, explain what changed and why.
+
+## Monster Feature Workflow
+When starting monster design or monster implementation:
+1. Review `docs/monster_design.md` first.
+2. Check whether the monster spec includes starting band, step rules, timing result rules, and post-event state.
+3. If required monster information is missing, ask for the missing parts before committing to a movement or pattern structure.
 
 ## Do Not Modify (unless explicitly required)
 - `Assets/Plugins/`

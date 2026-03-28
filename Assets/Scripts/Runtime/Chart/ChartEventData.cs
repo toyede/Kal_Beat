@@ -1,4 +1,5 @@
 using System;
+using KalBeat.Combat;
 using UnityEngine;
 
 namespace KalBeat.Charting
@@ -8,11 +9,17 @@ namespace KalBeat.Charting
     {
         [SerializeField] private float beat;
         [SerializeField] private int lane;
-        [SerializeField] private ChartEventType eventType = ChartEventType.AttackTiming;
-        [SerializeField] private MonsterActionKind monsterActionKind = MonsterActionKind.None;
-        [SerializeField] private CameraCueKind cameraCueKind = CameraCueKind.None;
-        [SerializeField] private CameraMovingKind cameraMovingKind = CameraMovingKind.None;
+        [SerializeField] private CombatEventKind kind = CombatEventKind.None;
+        [SerializeField] private CombatEventPhase phase = CombatEventPhase.Timing;
+        [SerializeField] private int stepIndex;
+        [SerializeField] private ReadyCueType readyCueType = ReadyCueType.None;
+        [SerializeField] private PlayerRelativeDirection directionHint = PlayerRelativeDirection.None;
         [SerializeField] private float nudgeMs;
+        [SerializeField] private MovementResolveMode movementResolveMode = MovementResolveMode.None;
+        [SerializeField] private float moveUnits;
+        [SerializeField] private float targetBandUnits;
+        [SerializeField] private MovementDirectionHint movementDirectionHint = MovementDirectionHint.None;
+        [SerializeField] private float entryBandUnits;
 
         public float Beat
         {
@@ -26,34 +33,70 @@ namespace KalBeat.Charting
             set => lane = value;
         }
 
-        public ChartEventType EventType
+        public CombatEventKind Kind
         {
-            get => eventType;
-            set => eventType = value;
+            get => kind;
+            set => kind = value;
         }
 
-        public MonsterActionKind MonsterActionKind
+        public CombatEventPhase Phase
         {
-            get => monsterActionKind;
-            set => monsterActionKind = value;
+            get => phase;
+            set => phase = value;
         }
 
-        public CameraCueKind CameraCueKind
+        public int StepIndex
         {
-            get => cameraCueKind;
-            set => cameraCueKind = value;
+            get => stepIndex;
+            set => stepIndex = value;
         }
 
-        public CameraMovingKind CameraMovingKind
+        public ReadyCueType ReadyCueType
         {
-            get => cameraMovingKind;
-            set => cameraMovingKind = value;
+            get => readyCueType;
+            set => readyCueType = value;
+        }
+
+        public PlayerRelativeDirection DirectionHint
+        {
+            get => directionHint;
+            set => directionHint = value;
         }
 
         public float NudgeMs
         {
             get => nudgeMs;
             set => nudgeMs = value;
+        }
+
+        public MovementResolveMode MovementResolveMode
+        {
+            get => movementResolveMode;
+            set => movementResolveMode = value;
+        }
+
+        public float MoveUnits
+        {
+            get => moveUnits;
+            set => moveUnits = value;
+        }
+
+        public float TargetBandUnits
+        {
+            get => targetBandUnits;
+            set => targetBandUnits = value;
+        }
+
+        public MovementDirectionHint MovementDirectionHint
+        {
+            get => movementDirectionHint;
+            set => movementDirectionHint = value;
+        }
+
+        public float EntryBandUnits
+        {
+            get => entryBandUnits;
+            set => entryBandUnits = value;
         }
     }
 }
