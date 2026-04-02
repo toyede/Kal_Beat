@@ -14,12 +14,15 @@ namespace KalBeat.Combat
         [SerializeField] private PlayerCombatActor playerActor;
         [SerializeField] private MonsterCombatActor monsterActor;
         [SerializeField] private bool playOnStart = true;
+        [SerializeField] private string readyCueEventPath = "event:/preview/finger_snap";
 
         private readonly List<ResolvedCombatStep> runtimeMonsterSteps = new List<ResolvedCombatStep>();
         private readonly List<ResolvedCombatStep> runtimePlayerSteps = new List<ResolvedCombatStep>();
+        private readonly List<ResolvedCombatStep> runtimeReadyCueSteps = new List<ResolvedCombatStep>();
         private EventInstance musicEventInstance;
         private int nextMonsterStartIndex;
         private int nextPlayerStartIndex;
+        private int nextReadyCueIndex;
         private bool playbackStarted;
         private bool runtimeTimelineReady;
 
@@ -87,6 +90,24 @@ namespace KalBeat.Combat
 
                 nextPlayerStartIndex++;
             }
+
+            while (nextReadyCueIndex < runtimeReadyCueSteps.Count)
+            {
+                ResolvedCombatStep resolvedStep = runtimeReadyCueSteps[nextReadyCueIndex];
+                if (resolvedStep == null)
+                {
+                    nextReadyCueIndex++;
+                    continue;
+                }
+
+                if (resolvedStep.HitSec > currentTimeSec + 0.0001f)
+                {
+                    break;
+                }
+
+                PlayReadyCue(resolvedStep);
+                nextReadyCueIndex++;
+            }
         }
 
         private void OnDisable()
@@ -149,8 +170,10 @@ namespace KalBeat.Combat
         {
             runtimeMonsterSteps.Clear();
             runtimePlayerSteps.Clear();
+            runtimeReadyCueSteps.Clear();
             nextMonsterStartIndex = 0;
             nextPlayerStartIndex = 0;
+            nextReadyCueIndex = 0;
             runtimeTimelineReady = false;
 
             if (chart == null || chart.Meta == null || chart.ResolvedTimeline == null || monsterActor == null || monsterActor.Definition == null)
@@ -200,10 +223,16 @@ namespace KalBeat.Combat
                 {
                     runtimePlayerSteps.Add(resolvedStep);
                 }
+
+                if (ShouldPlayReadyCue(resolvedStep))
+                {
+                    runtimeReadyCueSteps.Add(resolvedStep);
+                }
             }
 
             runtimeMonsterSteps.Sort(CompareResolvedMonsterStarts);
             runtimePlayerSteps.Sort(CompareResolvedPlayerStarts);
+            runtimeReadyCueSteps.Sort(CompareResolvedReadyCueHits);
             runtimeTimelineReady = true;
         }
 
@@ -253,6 +282,32 @@ namespace KalBeat.Combat
             playbackStarted = false;
         }
 
+        private void PlayReadyCue(ResolvedCombatStep resolvedStep)
+        {
+            if (string.IsNullOrWhiteSpace(readyCueEventPath))
+            {
+                return;
+            }
+
+            Vector3 cuePosition = monsterActor != null
+                ? monsterActor.transform.position
+                : Vector3.zero;
+
+            if (duelRoot != null)
+            {
+                cuePosition = duelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos);
+            }
+
+            RuntimeManager.PlayOneShot(readyCueEventPath, cuePosition);
+        }
+
+        private static bool ShouldPlayReadyCue(ResolvedCombatStep resolvedStep)
+        {
+            return resolvedStep != null &&
+                   resolvedStep.Phase == CombatEventPhase.Ready &&
+                   (resolvedStep.ReadyCueType == ReadyCueType.Pose || resolvedStep.ReadyCueType == ReadyCueType.Move);
+        }
+
         private static int CompareResolvedMonsterStarts(ResolvedCombatStep left, ResolvedCombatStep right)
         {
             if (ReferenceEquals(left, right))
@@ -286,6 +341,38 @@ namespace KalBeat.Combat
             if (phaseCompare != 0)
             {
                 return phaseCompare;
+            }
+
+            return left.StepIndex.CompareTo(right.StepIndex);
+        }
+
+        private static int CompareResolvedReadyCueHits(ResolvedCombatStep left, ResolvedCombatStep right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int timeCompare = left.HitSec.CompareTo(right.HitSec);
+            if (timeCompare != 0)
+            {
+                return timeCompare;
+            }
+
+            int laneCompare = left.Lane.CompareTo(right.Lane);
+            if (laneCompare != 0)
+            {
+                return laneCompare;
             }
 
             return left.StepIndex.CompareTo(right.StepIndex);

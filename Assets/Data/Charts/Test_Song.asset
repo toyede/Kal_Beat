@@ -37,7 +37,7 @@ MonoBehaviour:
     - bindingType: 0
       bindingId: 
   events:
-  - beat: 1
+  - beat: 5
     lane: 0
     kind: 2
     phase: 0
@@ -50,7 +50,7 @@ MonoBehaviour:
     targetBandUnits: 0
     movementDirectionHint: 0
     entryBandUnits: 4
-  - beat: 3
+  - beat: 7
     lane: 0
     kind: 2
     phase: 1
@@ -63,7 +63,7 @@ MonoBehaviour:
     targetBandUnits: 0
     movementDirectionHint: 0
     entryBandUnits: 4
-  - beat: 5
+  - beat: 9
     lane: 0
     kind: 2
     phase: 0
@@ -76,7 +76,7 @@ MonoBehaviour:
     targetBandUnits: 4
     movementDirectionHint: 1
     entryBandUnits: 4
-  - beat: 7
+  - beat: 11
     lane: 0
     kind: 2
     phase: 0
@@ -89,7 +89,7 @@ MonoBehaviour:
     targetBandUnits: 4
     movementDirectionHint: 2
     entryBandUnits: 4
-  - beat: 9
+  - beat: 13
     lane: 0
     kind: 2
     phase: 1
@@ -104,13 +104,13 @@ MonoBehaviour:
     entryBandUnits: 4
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: 556ef2dc6505f709f9fabe15bbad335e
+    sourceSignature: afaa551c3f8268df10ee1848c598c8a5
     isValid: 1
     invalidReason: 
     steps:
     - monsterId: boar
       monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
-      sourceBeat: 1
+      sourceBeat: 5
       lane: 0
       kind: 2
       phase: 0
@@ -121,10 +121,10 @@ MonoBehaviour:
       moveUnits: 0
       targetBandUnits: 0
       movementDirectionHint: 0
-      monsterStartSec: 0.6494546
-      hitSec: 0.6494546
+      monsterStartSec: 2.8312728
+      hitSec: 2.8312728
       monsterDurationSec: 0
-      playerStartSec: 0.6494546
+      playerStartSec: 2.8312728
       playerDurationSec: 0
       startPlayerLocalPos: {x: 0, y: 0}
       endPlayerLocalPos: {x: 0, y: 0}
@@ -135,7 +135,7 @@ MonoBehaviour:
       exitBandUnits: 4
     - monsterId: boar
       monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
-      sourceBeat: 3
+      sourceBeat: 7
       lane: 0
       kind: 2
       phase: 1
@@ -146,10 +146,10 @@ MonoBehaviour:
       moveUnits: 0
       targetBandUnits: 0
       movementDirectionHint: 0
-      monsterStartSec: 1.5603638
-      hitSec: 1.7403637
+      monsterStartSec: 3.7421818
+      hitSec: 3.9221818
       monsterDurationSec: 0.18
-      playerStartSec: 1.7403637
+      playerStartSec: 3.9221818
       playerDurationSec: 0.18
       startPlayerLocalPos: {x: 0, y: 0}
       endPlayerLocalPos: {x: 4, y: 0}
@@ -160,7 +160,7 @@ MonoBehaviour:
       exitBandUnits: 4
     - monsterId: boar
       monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
-      sourceBeat: 5
+      sourceBeat: 9
       lane: 0
       kind: 2
       phase: 0
@@ -171,10 +171,10 @@ MonoBehaviour:
       moveUnits: 2
       targetBandUnits: 4
       movementDirectionHint: 1
-      monsterStartSec: 2.741273
-      hitSec: 2.8312728
+      monsterStartSec: 4.923091
+      hitSec: 5.013091
       monsterDurationSec: 0.09
-      playerStartSec: 2.8312728
+      playerStartSec: 5.013091
       playerDurationSec: 0
       startPlayerLocalPos: {x: 4, y: 0}
       endPlayerLocalPos: {x: 4, y: 0}
@@ -185,7 +185,7 @@ MonoBehaviour:
       exitBandUnits: 4
     - monsterId: boar
       monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
-      sourceBeat: 7
+      sourceBeat: 11
       lane: 0
       kind: 2
       phase: 0
@@ -196,10 +196,10 @@ MonoBehaviour:
       moveUnits: 4
       targetBandUnits: 4
       movementDirectionHint: 2
-      monsterStartSec: 3.7421818
-      hitSec: 3.9221818
+      monsterStartSec: 5.9240003
+      hitSec: 6.104
       monsterDurationSec: 0.18
-      playerStartSec: 3.9221818
+      playerStartSec: 6.104
       playerDurationSec: 0
       startPlayerLocalPos: {x: 4, y: 0}
       endPlayerLocalPos: {x: 4, y: 0}
@@ -210,7 +210,7 @@ MonoBehaviour:
       exitBandUnits: 4
     - monsterId: boar
       monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
-      sourceBeat: 9
+      sourceBeat: 13
       lane: 0
       kind: 2
       phase: 1
@@ -221,10 +221,10 @@ MonoBehaviour:
       moveUnits: 0
       targetBandUnits: 0
       movementDirectionHint: 0
-      monsterStartSec: 4.8330913
-      hitSec: 5.013091
+      monsterStartSec: 7.0149093
+      hitSec: 7.194909
       monsterDurationSec: 0.18
-      playerStartSec: 5.013091
+      playerStartSec: 7.194909
       playerDurationSec: 0.18
       startPlayerLocalPos: {x: 4, y: 0}
       endPlayerLocalPos: {x: 6.062843, y: 3.427051}

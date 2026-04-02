@@ -14,6 +14,8 @@ namespace KalBeat.Combat
         private CombatDuelRoot duelRoot;
         private Coroutine activeMoveRoutine;
 
+        public bool IsMoving => activeMoveRoutine != null;
+
         public void InitializeCombat(CombatDuelRoot root)
         {
             duelRoot = root;
