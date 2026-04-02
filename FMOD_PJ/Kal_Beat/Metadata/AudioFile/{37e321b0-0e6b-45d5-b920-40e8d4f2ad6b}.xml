@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <objects serializationModel="Studio.02.02.00">
-	<object class="AudioFile" id="{639937a1-1e1c-49ce-ba1d-a1dd8857ae9e}">
+	<object class="AudioFile" id="{37e321b0-0e6b-45d5-b920-40e8d4f2ad6b}">
 		<property name="assetPath">
-			<value>finger_snap_[cut_0sec]_[cut_0sec].mp3</value>
+			<value>finger_snap.wav</value>
 		</property>
 		<property name="frequencyInKHz">
 			<value>48</value>
@@ -11,7 +11,7 @@
 			<value>2</value>
 		</property>
 		<property name="length">
-			<value>0.096000000000000002</value>
+			<value>0.12</value>
 		</property>
 		<relationship name="masterAssetFolder">
 			<destination>{3aa99c08-2c53-4b71-97f2-a06c242eefeb}</destination>

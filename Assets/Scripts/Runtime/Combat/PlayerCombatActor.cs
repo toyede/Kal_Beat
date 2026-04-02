@@ -8,6 +8,8 @@ namespace KalBeat.Combat
     {
         [SerializeField] private Renderer bodyRenderer;
         [SerializeField] private Color defaultColor = Color.white;
+        [SerializeField] private Color perfectColor = new Color(0.35f, 0.6f, 0.95f, 1f);
+        [SerializeField] private Color goodColor = new Color(0.35f, 0.85f, 0.45f, 1f);
         [SerializeField] private Color hitColor = new Color(0.95f, 0.35f, 0.35f, 1f);
         [SerializeField] private float defaultMoveDurationSec = 0.18f;
 
@@ -55,12 +57,17 @@ namespace KalBeat.Combat
 
         public void PlayResolvedHitMove(Vector2 targetLocalPosition, float durationSec)
         {
+            PlayResolvedReactionMove(targetLocalPosition, durationSec, CombatJudgementGrade.Miss);
+        }
+
+        public void PlayResolvedReactionMove(Vector2 targetLocalPosition, float durationSec, CombatJudgementGrade grade)
+        {
             if (duelRoot == null)
             {
                 return;
             }
 
-            ApplyColor(hitColor);
+            ApplyColor(GetReactionColor(grade));
             StartMove(duelRoot.ConvertDuelLocalToWorld(targetLocalPosition), durationSec > 0f ? durationSec : defaultMoveDurationSec);
         }
 
@@ -110,6 +117,21 @@ namespace KalBeat.Combat
             }
 
             bodyRenderer.material.color = color;
+        }
+
+        private Color GetReactionColor(CombatJudgementGrade grade)
+        {
+            switch (grade)
+            {
+                case CombatJudgementGrade.Perfect:
+                    return perfectColor;
+                case CombatJudgementGrade.Good:
+                    return goodColor;
+                case CombatJudgementGrade.Miss:
+                    return hitColor;
+                default:
+                    return defaultColor;
+            }
         }
 
         private void OnValidate()

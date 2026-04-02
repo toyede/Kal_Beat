@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <objects serializationModel="Studio.02.02.00">
-	<object class="AudioFile" id="{f22c9756-a525-4435-a649-83ae741df006}">
+	<object class="AudioFile" id="{f6fbadbd-e86d-4df1-9506-368720954231}">
 		<property name="assetPath">
-			<value>metronome_[cut_0sec]_[cut_0sec].mp3</value>
+			<value>F16 - The Grey Room _ Golden Palms.wav</value>
+		</property>
+		<property name="isStreaming">
+			<value>true</value>
 		</property>
 		<property name="frequencyInKHz">
-			<value>48</value>
+			<value>44.0999985</value>
 		</property>
 		<property name="channelCount">
 			<value>2</value>
 		</property>
 		<property name="length">
-			<value>0.071999999999999995</value>
+			<value>196.36362811791383</value>
 		</property>
 		<relationship name="masterAssetFolder">
 			<destination>{3aa99c08-2c53-4b71-97f2-a06c242eefeb}</destination>

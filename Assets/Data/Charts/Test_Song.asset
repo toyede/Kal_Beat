@@ -16,10 +16,10 @@ MonoBehaviour:
     songId: 001
     songName: The Grey Room
     previewAudioClip: {fileID: 0}
-    fmodEventPath: event:/Test_Song
+    fmodEventPath: event:/F16 - The Grey Room _ Golden Palms
     bpm: 110
     offsetSec: 0.104
-    songLengthSec: 196.364
+    songLengthSec: 196.363
     gridDivision: 8
     laneCount: 6
     maxEventsPerSlot: 4
@@ -102,9 +102,87 @@ MonoBehaviour:
     targetBandUnits: 0
     movementDirectionHint: 0
     entryBandUnits: 4
+  - beat: 15
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 0
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 2
+    targetBandUnits: 4
+    movementDirectionHint: 1
+    entryBandUnits: 4
+  - beat: 17
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 1
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 4
+    targetBandUnits: 4
+    movementDirectionHint: 2
+    entryBandUnits: 4
+  - beat: 19
+    lane: 0
+    kind: 2
+    phase: 1
+    stepIndex: 2
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+  - beat: 21
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 0
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 2
+    targetBandUnits: 4
+    movementDirectionHint: 1
+    entryBandUnits: 4
+  - beat: 23
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 1
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 4
+    targetBandUnits: 4
+    movementDirectionHint: 2
+    entryBandUnits: 4
+  - beat: 25
+    lane: 0
+    kind: 2
+    phase: 1
+    stepIndex: 2
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: afaa551c3f8268df10ee1848c598c8a5
+    sourceSignature: 528bcfb27f16dd4a77998889fd1076ce
     isValid: 1
     invalidReason: 
     steps:
@@ -231,5 +309,155 @@ MonoBehaviour:
       startMonsterLocalPos: {x: 0.57294905, y: 2.0628428}
       endMonsterLocalPos: {x: 4, y: 0}
       lockedPlayerLocalPos: {x: 4, y: 0}
+      entryBandUnits: 4
+      exitBandUnits: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 15
+      lane: 0
+      kind: 2
+      phase: 0
+      stepIndex: 0
+      readyCueType: 2
+      playerDirectionHint: 0
+      movementResolveMode: 2
+      moveUnits: 2
+      targetBandUnits: 4
+      movementDirectionHint: 1
+      monsterStartSec: 8.195818
+      hitSec: 8.285818
+      monsterDurationSec: 0.09
+      playerStartSec: 8.285818
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      endPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      startMonsterLocalPos: {x: 4, y: 0}
+      endMonsterLocalPos: {x: 5.9169693, y: -0.5702881}
+      lockedPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      entryBandUnits: 4
+      exitBandUnits: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 17
+      lane: 0
+      kind: 2
+      phase: 0
+      stepIndex: 1
+      readyCueType: 2
+      playerDirectionHint: 0
+      movementResolveMode: 2
+      moveUnits: 4
+      targetBandUnits: 4
+      movementDirectionHint: 2
+      monsterStartSec: 9.196727
+      hitSec: 9.376727
+      monsterDurationSec: 0.18
+      playerStartSec: 9.376727
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      endPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      startMonsterLocalPos: {x: 5.9169693, y: -0.5702881}
+      endMonsterLocalPos: {x: 2.528109, y: 1.5547116}
+      lockedPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      entryBandUnits: 4
+      exitBandUnits: 3.9999998
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 19
+      lane: 0
+      kind: 2
+      phase: 1
+      stepIndex: 2
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 10.287637
+      hitSec: 10.467637
+      monsterDurationSec: 0.18
+      playerStartSec: 10.467637
+      playerDurationSec: 0.18
+      startPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      endPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      startMonsterLocalPos: {x: 2.528109, y: 1.5547116}
+      endMonsterLocalPos: {x: 6.062843, y: 3.427051}
+      lockedPlayerLocalPos: {x: 6.062843, y: 3.427051}
+      entryBandUnits: 3.9999998
+      exitBandUnits: 4.0000005
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 21
+      lane: 0
+      kind: 2
+      phase: 0
+      stepIndex: 0
+      readyCueType: 2
+      playerDirectionHint: 0
+      movementResolveMode: 2
+      moveUnits: 2
+      targetBandUnits: 4
+      movementDirectionHint: 1
+      monsterStartSec: 11.468546
+      hitSec: 11.558546
+      monsterDurationSec: 0.09
+      playerStartSec: 11.558546
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      endPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      startMonsterLocalPos: {x: 6.062843, y: 3.427051}
+      endMonsterLocalPos: {x: 7.5400457, y: 4.7753353}
+      lockedPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      entryBandUnits: 4.0000005
+      exitBandUnits: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 23
+      lane: 0
+      kind: 2
+      phase: 0
+      stepIndex: 1
+      readyCueType: 2
+      playerDirectionHint: 0
+      movementResolveMode: 2
+      moveUnits: 4
+      targetBandUnits: 4
+      movementDirectionHint: 2
+      monsterStartSec: 12.469455
+      hitSec: 12.649455
+      monsterDurationSec: 0.18
+      playerStartSec: 12.649455
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      endPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      startMonsterLocalPos: {x: 7.5400457, y: 4.7753353}
+      endMonsterLocalPos: {x: 3.9717531, y: 2.9677713}
+      lockedPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      entryBandUnits: 4
+      exitBandUnits: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 88ea88fb69678a34318c39c0b987140a
+      sourceBeat: 25
+      lane: 0
+      kind: 2
+      phase: 1
+      stepIndex: 2
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 13.560364
+      hitSec: 13.740364
+      monsterDurationSec: 0.18
+      playerStartSec: 13.740364
+      playerDurationSec: 0.18
+      startPlayerLocalPos: {x: 4.190503, y: 6.9617853}
+      endPlayerLocalPos: {x: 0.1964891, y: 7.1805353}
+      startMonsterLocalPos: {x: 3.9717531, y: 2.9677713}
+      endMonsterLocalPos: {x: 4.190503, y: 6.9617853}
+      lockedPlayerLocalPos: {x: 4.190503, y: 6.9617853}
       entryBandUnits: 4
       exitBandUnits: 4

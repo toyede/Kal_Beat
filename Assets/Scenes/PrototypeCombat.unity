@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 106852568}
   - component: {fileID: 106852567}
+  - component: {fileID: 106852569}
   m_Layer: 0
   m_Name: CombatTimelineController
   m_TagString: Untagged
@@ -152,8 +153,11 @@ MonoBehaviour:
   duelRoot: {fileID: 2071709880}
   playerActor: {fileID: 1177522445}
   monsterActor: {fileID: 1861207940}
+  judgementSystem: {fileID: 106852569}
   playOnStart: 1
   readyCueEventPath: event:/preview/finger_snap
+  judgementInputCueEventPath: event:/preview/finger_snap
+  enableJudgementLogs: 1
 --- !u!4 &106852568
 Transform:
   m_ObjectHideFlags: 0
@@ -169,6 +173,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &106852569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 106852566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de8f32e5f3ce1ab4b8e381155139a46a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  inputKey: 32
+  perfectWindowMs: 35
+  goodWindowMs: 80
+  missWindowMs: 130
 --- !u!1 &1177522444
 GameObject:
   m_ObjectHideFlags: 0
@@ -182,6 +202,7 @@ GameObject:
   - component: {fileID: 1177522446}
   - component: {fileID: 1177522447}
   - component: {fileID: 1177522445}
+  - component: {fileID: 1177522450}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -203,6 +224,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bodyRenderer: {fileID: 1177522446}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  perfectColor: {r: 0.35, g: 0.6, b: 0.95, a: 1}
+  goodColor: {r: 0.35, g: 0.85, b: 0.45, a: 1}
   hitColor: {r: 0.95, g: 0.35, b: 0.35, a: 1}
   defaultMoveDurationSec: 0.18
 --- !u!23 &1177522446
@@ -296,6 +319,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1177522450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177522444}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6556701af9e04380698b89f691b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nonRigidbodyVelocity: 0
+  attenuationObject: {fileID: 0}
 --- !u!1 &1612693747
 GameObject:
   m_ObjectHideFlags: 0
@@ -323,7 +360,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1612693747}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &1612693749
 Camera:
   m_ObjectHideFlags: 0
