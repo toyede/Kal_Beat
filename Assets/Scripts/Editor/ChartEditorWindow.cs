@@ -973,6 +973,15 @@ namespace KalBeat.Charting.Editor
                 eventData.TargetBandUnits = 0f;
                 eventData.MovementDirectionHint = MovementDirectionHint.None;
                 eventData.EntryBandUnits = 0f;
+                eventData.PlayerKnockbackUnits = 0f;
+                eventData.MonsterKnockbackUnits = 0f;
+                return;
+            }
+
+            if (eventKind != CombatEventKind.MeleeThreatCounterable)
+            {
+                eventData.PlayerKnockbackUnits = 0f;
+                eventData.MonsterKnockbackUnits = 0f;
             }
         }
 
@@ -1060,9 +1069,11 @@ namespace KalBeat.Charting.Editor
                 targetEvent.DirectionHint = stepDefinition.DirectionHint;
                 targetEvent.MovementResolveMode = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementResolveMode : MovementResolveMode.None;
                 targetEvent.MoveUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MoveUnits : 0f;
-                targetEvent.TargetBandUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.TargetBandUnits : 0f;
+                targetEvent.TargetBandUnits = stepDefinition.TargetBandUnits;
                 targetEvent.MovementDirectionHint = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementDirectionHint : MovementDirectionHint.None;
                 targetEvent.EntryBandUnits = patternDefinition.EntryBandUnits;
+                targetEvent.PlayerKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.PlayerKnockbackUnits : 0f;
+                targetEvent.MonsterKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.MonsterKnockbackUnits : 0f;
                 targetEvent.NudgeMs = existingNudgeMs;
             }
 
@@ -2223,12 +2234,8 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            if (combatEventPhase == CombatEventPhase.Ready)
-            {
-                return readyCueType == ReadyCueType.Move;
-            }
-
-            return combatEventKind == CombatEventKind.MeleeThreatDodgeOnly;
+            return combatEventPhase == CombatEventPhase.Timing &&
+                   combatEventKind == CombatEventKind.MeleeThreatDodgeOnly;
         }
 
         private static string BuildPatternDescription(PatternDefinition patternDefinition)
@@ -2256,9 +2263,19 @@ namespace KalBeat.Charting.Editor
                 PatternStepDefinition stepDefinition = orderedSteps[i];
                 if (stepDefinition.Phase == CombatEventPhase.Timing)
                 {
-                    string timingText = stepDefinition.DirectionHint == PlayerRelativeDirection.None
-                        ? "Timing"
-                        : $"Timing ({stepDefinition.DirectionHint})";
+                    string timingText;
+                    if (patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable)
+                    {
+                        timingText =
+                            $"Timing [Approach Band {stepDefinition.TargetBandUnits:0.###}, P Knockback {stepDefinition.PlayerKnockbackUnits:0.###}, M Knockback {stepDefinition.MonsterKnockbackUnits:0.###}]";
+                    }
+                    else
+                    {
+                        timingText = stepDefinition.DirectionHint == PlayerRelativeDirection.None
+                            ? "Timing"
+                            : $"Timing ({stepDefinition.DirectionHint})";
+                    }
+
                     stepTexts.Add(timingText);
                     continue;
                 }
@@ -2356,6 +2373,14 @@ namespace KalBeat.Charting.Editor
             for (int i = 0; i < orderedSteps.Count; i++)
             {
                 PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (stepDefinition.Phase == CombatEventPhase.Timing &&
+                    patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable &&
+                    stepDefinition.TargetBandUnits < 0f)
+                {
+                    errorMessage = "Counterable Timing step must set TargetBandUnits greater than or equal to 0.";
+                    return false;
+                }
+
                 if (stepDefinition.Phase != CombatEventPhase.Ready || stepDefinition.ReadyCueType != ReadyCueType.Move)
                 {
                     continue;

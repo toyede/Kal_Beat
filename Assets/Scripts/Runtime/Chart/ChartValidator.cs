@@ -24,6 +24,8 @@ namespace KalBeat.Charting
         private const string ErrorCodeMoveUnitsInvalid = "event.move.units.invalid";
         private const string ErrorCodeTargetBandInvalid = "event.move.target_band.invalid";
         private const string ErrorCodeMoveDirectionMissing = "event.move.direction.missing";
+        private const string ErrorCodeCounterPlayerKnockbackInvalid = "event.counter.player_knockback.invalid";
+        private const string ErrorCodeCounterMonsterKnockbackInvalid = "event.counter.monster_knockback.invalid";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
         private const string WarningCodeEventKindNone = "event.kind.none";
         private const string WarningCodeReadyCueMissing = "event.ready_cue.missing";
@@ -159,6 +161,20 @@ namespace KalBeat.Charting
                     }
                 }
 
+                if (eventData.Phase == CombatEventPhase.Timing &&
+                    eventData.Kind == CombatEventKind.MeleeThreatCounterable)
+                {
+                    if (eventData.PlayerKnockbackUnits < 0f)
+                    {
+                        result.AddError(ErrorCodeCounterPlayerKnockbackInvalid, "Counterable Timing event must set PlayerKnockbackUnits greater than or equal to 0.", i);
+                    }
+
+                    if (eventData.MonsterKnockbackUnits < 0f)
+                    {
+                        result.AddError(ErrorCodeCounterMonsterKnockbackInvalid, "Counterable Timing event must set MonsterKnockbackUnits greater than or equal to 0.", i);
+                    }
+                }
+
                 if (RequiresDirectionHint(eventData) && eventData.DirectionHint == PlayerRelativeDirection.None)
                 {
                     result.AddWarning(WarningCodeDirectionMissing, "MeleeThreatDodgeOnly should set DirectionHint.", i);
@@ -203,12 +219,8 @@ namespace KalBeat.Charting
                 return false;
             }
 
-            if (eventData.Phase == CombatEventPhase.Ready)
-            {
-                return eventData.ReadyCueType == ReadyCueType.Move;
-            }
-
-            return eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly;
+            return eventData.Phase == CombatEventPhase.Timing &&
+                   eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly;
         }
     }
 }

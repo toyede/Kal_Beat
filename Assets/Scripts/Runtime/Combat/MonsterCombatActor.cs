@@ -72,10 +72,21 @@ namespace KalBeat.Combat
             HandleResolvedTiming(resolvedStep);
         }
 
+        public void HandleResolvedJudgement(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
+        {
+            if (resolvedStep == null || grade == CombatJudgementGrade.Ignore)
+            {
+                return;
+            }
+
+            HandleResolvedJudgementResult(resolvedStep, grade);
+        }
+
         protected abstract void HandleReady(ChartEventData eventData);
         protected abstract void HandleTiming(ChartEventData eventData);
         protected abstract void HandleResolvedReady(ResolvedCombatStep resolvedStep);
         protected abstract void HandleResolvedTiming(ResolvedCombatStep resolvedStep);
+        protected virtual void HandleResolvedJudgementResult(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade) { }
         protected virtual void OnMoveCompleted() { }
 
         protected void SetVisualColor(Color color)

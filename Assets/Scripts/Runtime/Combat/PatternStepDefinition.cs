@@ -15,6 +15,8 @@ namespace KalBeat.Combat
         [SerializeField] private float moveUnits;
         [SerializeField] private float targetBandUnits;
         [SerializeField] private MovementDirectionHint movementDirectionHint = MovementDirectionHint.None;
+        [SerializeField] private float playerKnockbackUnits;
+        [SerializeField] private float monsterKnockbackUnits;
 
         public float BeatOffsetFromTiming
         {
@@ -62,6 +64,18 @@ namespace KalBeat.Combat
         {
             get => movementDirectionHint;
             set => movementDirectionHint = value;
+        }
+
+        public float PlayerKnockbackUnits
+        {
+            get => playerKnockbackUnits;
+            set => playerKnockbackUnits = value;
+        }
+
+        public float MonsterKnockbackUnits
+        {
+            get => monsterKnockbackUnits;
+            set => monsterKnockbackUnits = value;
         }
     }
 }

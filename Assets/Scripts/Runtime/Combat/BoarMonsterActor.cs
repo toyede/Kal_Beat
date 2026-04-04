@@ -12,7 +12,8 @@ namespace KalBeat.Combat
 
         protected override void HandleReady(ChartEventData eventData)
         {
-            if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly)
+            if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
+                eventData.Kind != CombatEventKind.MeleeThreatCounterable)
             {
                 return;
             }
@@ -25,7 +26,8 @@ namespace KalBeat.Combat
 
         protected override void HandleTiming(ChartEventData eventData)
         {
-            if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly)
+            if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
+                eventData.Kind != CombatEventKind.MeleeThreatCounterable)
             {
                 return;
             }
@@ -36,7 +38,8 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedReady(ResolvedCombatStep resolvedStep)
         {
-            if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly)
+            if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
+                resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
             {
                 return;
             }
@@ -59,7 +62,8 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedTiming(ResolvedCombatStep resolvedStep)
         {
-            if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly)
+            if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
+                resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
             {
                 return;
             }
@@ -67,8 +71,22 @@ namespace KalBeat.Combat
             SetVisualColor(dashColor);
             if (DuelRoot != null)
             {
-                MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos), resolvedStep.MonsterDurationSec);
+                Vector2 targetLocalPosition = resolvedStep.Kind == CombatEventKind.MeleeThreatCounterable
+                    ? resolvedStep.MonsterApproachLocalPos
+                    : resolvedStep.EndMonsterLocalPos;
+                MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(targetLocalPosition), resolvedStep.MonsterDurationSec);
             }
+        }
+
+        protected override void HandleResolvedJudgementResult(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
+        {
+            if (resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable || DuelRoot == null)
+            {
+                return;
+            }
+
+            SetVisualColor(dashColor);
+            MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos), resolvedStep.MonsterDurationSec);
         }
 
         protected override void OnMoveCompleted()

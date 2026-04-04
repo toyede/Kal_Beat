@@ -55,13 +55,14 @@ namespace KalBeat.Combat
 
                 step.MoveUnits = Mathf.Max(0f, step.MoveUnits);
                 step.TargetBandUnits = Mathf.Max(0f, step.TargetBandUnits);
+                step.PlayerKnockbackUnits = Mathf.Max(0f, step.PlayerKnockbackUnits);
+                step.MonsterKnockbackUnits = Mathf.Max(0f, step.MonsterKnockbackUnits);
 
                 if (step.Phase == CombatEventPhase.Timing)
                 {
                     step.ReadyCueType = ReadyCueType.None;
                     step.MovementResolveMode = MovementResolveMode.None;
                     step.MoveUnits = 0f;
-                    step.TargetBandUnits = 0f;
                     step.MovementDirectionHint = MovementDirectionHint.None;
                     continue;
                 }
@@ -73,6 +74,9 @@ namespace KalBeat.Combat
                     step.TargetBandUnits = 0f;
                     step.MovementDirectionHint = MovementDirectionHint.None;
                 }
+
+                step.PlayerKnockbackUnits = 0f;
+                step.MonsterKnockbackUnits = 0f;
             }
         }
     }

@@ -338,7 +338,7 @@ namespace KalBeat.Combat
 
         private void ApplyJudgementReaction(CombatJudgementResult result)
         {
-            if (playerActor == null || result.ResolvedStep == null || result.ResolvedStep.PlayerDurationSec <= 0f)
+            if (result.ResolvedStep == null)
             {
                 return;
             }
@@ -348,10 +348,15 @@ namespace KalBeat.Combat
                 case CombatJudgementGrade.Perfect:
                 case CombatJudgementGrade.Good:
                 case CombatJudgementGrade.Miss:
-                    playerActor.PlayResolvedReactionMove(
-                        result.ResolvedStep.EndPlayerLocalPos,
-                        result.ResolvedStep.PlayerDurationSec,
-                        result.Grade);
+                    if (playerActor != null && result.ResolvedStep.PlayerDurationSec > 0f)
+                    {
+                        playerActor.PlayResolvedReactionMove(
+                            result.ResolvedStep.EndPlayerLocalPos,
+                            result.ResolvedStep.PlayerDurationSec,
+                            result.Grade);
+                    }
+
+                    monsterActor?.HandleResolvedJudgement(result.ResolvedStep, result.Grade);
                     break;
             }
         }

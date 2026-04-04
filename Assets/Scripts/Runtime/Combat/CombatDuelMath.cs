@@ -63,6 +63,19 @@ namespace KalBeat.Combat
             return playerLocalPosition + (GetDuelForward(playerLocalPosition, monsterLocalPosition) * targetBandUnits);
         }
 
+        public static void ResolveCounterKnockbackTargets(
+            Vector2 playerLocalPosition,
+            Vector2 monsterLocalPosition,
+            float playerKnockbackUnits,
+            float monsterKnockbackUnits,
+            out Vector2 playerTargetLocalPosition,
+            out Vector2 monsterTargetLocalPosition)
+        {
+            Vector2 duelForward = GetDuelForward(playerLocalPosition, monsterLocalPosition);
+            playerTargetLocalPosition = playerLocalPosition - (duelForward * playerKnockbackUnits);
+            monsterTargetLocalPosition = monsterLocalPosition + (duelForward * monsterKnockbackUnits);
+        }
+
         public static bool TryResolveReadyMoveTarget(
             Vector2 playerLocalPosition,
             Vector2 monsterLocalPosition,

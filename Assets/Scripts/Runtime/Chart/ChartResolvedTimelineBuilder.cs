@@ -71,7 +71,9 @@ namespace KalBeat.Charting
                         .Append(eventData.MoveUnits.ToString("R")).Append(':')
                         .Append(eventData.TargetBandUnits.ToString("R")).Append(':')
                         .Append((int)eventData.MovementDirectionHint).Append(':')
-                        .Append(eventData.EntryBandUnits.ToString("R"))
+                        .Append(eventData.EntryBandUnits.ToString("R")).Append(':')
+                        .Append(eventData.PlayerKnockbackUnits.ToString("R")).Append(':')
+                        .Append(eventData.MonsterKnockbackUnits.ToString("R"))
                         .Append('|');
                 }
             }
@@ -199,7 +201,10 @@ namespace KalBeat.Charting
                     StartPlayerLocalPos = currentPlayerLocalPosition,
                     StartMonsterLocalPos = currentMonsterLocalPosition,
                     LockedPlayerLocalPos = currentPlayerLocalPosition,
-                    EntryBandUnits = currentBandUnits
+                    MonsterApproachLocalPos = currentMonsterLocalPosition,
+                    EntryBandUnits = currentBandUnits,
+                    PlayerKnockbackUnits = eventData.PlayerKnockbackUnits,
+                    MonsterKnockbackUnits = eventData.MonsterKnockbackUnits
                 };
 
                 Vector2 endPlayerLocalPosition = currentPlayerLocalPosition;
@@ -240,14 +245,20 @@ namespace KalBeat.Charting
                         break;
 
                     case CombatEventPhase.Timing:
-                        if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly)
+                        if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
+                            eventData.Kind != CombatEventKind.MeleeThreatCounterable)
                         {
-                            errorMessage = $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}.";
+                            errorMessage =
+                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly} and {CombatEventKind.MeleeThreatCounterable}.";
                             chart.ResolvedTimeline.SetInvalid(errorMessage);
                             return false;
                         }
 
-                        float approachUnits = CombatDuelMath.GetBandUnits(currentPlayerLocalPosition, currentMonsterLocalPosition);
+                        Vector2 approachTargetLocalPosition = ResolveTimingApproachTarget(
+                            currentPlayerLocalPosition,
+                            currentMonsterLocalPosition,
+                            eventData.TargetBandUnits);
+                        float approachUnits = CombatDuelMath.GetBandUnits(currentMonsterLocalPosition, approachTargetLocalPosition);
                         if (!monsterDefinition.TryGetTimingApproachDurationSec(approachUnits, out monsterDurationSec))
                         {
                             errorMessage =
@@ -256,12 +267,28 @@ namespace KalBeat.Charting
                             return false;
                         }
 
-                        endMonsterLocalPosition = currentPlayerLocalPosition;
-                        endPlayerLocalPosition = CombatDuelMath.ResolvePlayerDirectionTarget(
-                            currentPlayerLocalPosition,
-                            currentMonsterLocalPosition,
-                            eventData.DirectionHint == PlayerRelativeDirection.None ? PlayerRelativeDirection.Right : eventData.DirectionHint,
-                            DefaultMeleeDodgeResolveUnits);
+                        resolvedStep.MonsterApproachLocalPos = approachTargetLocalPosition;
+
+                        if (eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly)
+                        {
+                            endMonsterLocalPosition = approachTargetLocalPosition;
+                            endPlayerLocalPosition = CombatDuelMath.ResolvePlayerDirectionTarget(
+                                currentPlayerLocalPosition,
+                                currentMonsterLocalPosition,
+                                eventData.DirectionHint == PlayerRelativeDirection.None ? PlayerRelativeDirection.Right : eventData.DirectionHint,
+                                DefaultMeleeDodgeResolveUnits);
+                        }
+                        else
+                        {
+                            CombatDuelMath.ResolveCounterKnockbackTargets(
+                                currentPlayerLocalPosition,
+                                approachTargetLocalPosition,
+                                eventData.PlayerKnockbackUnits,
+                                eventData.MonsterKnockbackUnits,
+                                out endPlayerLocalPosition,
+                                out endMonsterLocalPosition);
+                        }
+
                         playerDurationSec = monsterDurationSec;
                         break;
 
@@ -300,6 +327,19 @@ namespace KalBeat.Charting
         {
             float beatDurationSec = 60f / meta.Bpm;
             return meta.OffsetSec + (eventData.Beat * beatDurationSec) + (eventData.NudgeMs * 0.001f);
+        }
+
+        private static Vector2 ResolveTimingApproachTarget(
+            Vector2 playerLocalPosition,
+            Vector2 monsterLocalPosition,
+            float targetBandUnits)
+        {
+            if (targetBandUnits <= 0f)
+            {
+                return playerLocalPosition;
+            }
+
+            return CombatDuelMath.ResolveForwardToBand(playerLocalPosition, monsterLocalPosition, targetBandUnits);
         }
 
         private static List<ChartEventData> BuildOrderedEvents(List<ChartEventData> sourceEvents)

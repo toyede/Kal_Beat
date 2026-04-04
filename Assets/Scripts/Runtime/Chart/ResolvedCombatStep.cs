@@ -30,8 +30,11 @@ namespace KalBeat.Charting
         [SerializeField] private Vector2 startMonsterLocalPos;
         [SerializeField] private Vector2 endMonsterLocalPos;
         [SerializeField] private Vector2 lockedPlayerLocalPos;
+        [SerializeField] private Vector2 monsterApproachLocalPos;
         [SerializeField] private float entryBandUnits;
         [SerializeField] private float exitBandUnits;
+        [SerializeField] private float playerKnockbackUnits;
+        [SerializeField] private float monsterKnockbackUnits;
 
         public string MonsterId
         {
@@ -171,6 +174,12 @@ namespace KalBeat.Charting
             set => lockedPlayerLocalPos = value;
         }
 
+        public Vector2 MonsterApproachLocalPos
+        {
+            get => monsterApproachLocalPos;
+            set => monsterApproachLocalPos = value;
+        }
+
         public float EntryBandUnits
         {
             get => entryBandUnits;
@@ -181,6 +190,18 @@ namespace KalBeat.Charting
         {
             get => exitBandUnits;
             set => exitBandUnits = value;
+        }
+
+        public float PlayerKnockbackUnits
+        {
+            get => playerKnockbackUnits;
+            set => playerKnockbackUnits = value;
+        }
+
+        public float MonsterKnockbackUnits
+        {
+            get => monsterKnockbackUnits;
+            set => monsterKnockbackUnits = value;
         }
     }
 }

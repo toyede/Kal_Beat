@@ -20,6 +20,8 @@ namespace KalBeat.Charting
         [SerializeField] private float targetBandUnits;
         [SerializeField] private MovementDirectionHint movementDirectionHint = MovementDirectionHint.None;
         [SerializeField] private float entryBandUnits;
+        [SerializeField] private float playerKnockbackUnits;
+        [SerializeField] private float monsterKnockbackUnits;
 
         public float Beat
         {
@@ -97,6 +99,18 @@ namespace KalBeat.Charting
         {
             get => entryBandUnits;
             set => entryBandUnits = value;
+        }
+
+        public float PlayerKnockbackUnits
+        {
+            get => playerKnockbackUnits;
+            set => playerKnockbackUnits = value;
+        }
+
+        public float MonsterKnockbackUnits
+        {
+            get => monsterKnockbackUnits;
+            set => monsterKnockbackUnits = value;
         }
     }
 }
