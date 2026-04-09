@@ -24,6 +24,7 @@ namespace KalBeat.Charting
         private const string ErrorCodeMoveUnitsInvalid = "event.move.units.invalid";
         private const string ErrorCodeTargetBandInvalid = "event.move.target_band.invalid";
         private const string ErrorCodeMoveDirectionMissing = "event.move.direction.missing";
+        private const string ErrorCodePlayerDashReadyCueInvalid = "event.player_dash.ready_cue.invalid";
         private const string ErrorCodeCounterPlayerKnockbackInvalid = "event.counter.player_knockback.invalid";
         private const string ErrorCodeCounterMonsterKnockbackInvalid = "event.counter.monster_knockback.invalid";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
@@ -132,9 +133,18 @@ namespace KalBeat.Charting
                     result.AddWarning(WarningCodeEventKindNone, "Event kind is None. This event will be ignored at runtime.", i);
                 }
 
-                if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType == ReadyCueType.None)
+                if (eventData.Phase == CombatEventPhase.Ready &&
+                    eventData.ReadyCueType == ReadyCueType.None &&
+                    eventData.Kind != CombatEventKind.PlayerDashAttack)
                 {
                     result.AddWarning(WarningCodeReadyCueMissing, "Ready phase event should set ReadyCueType.", i);
+                }
+
+                if (eventData.Phase == CombatEventPhase.Ready &&
+                    eventData.Kind == CombatEventKind.PlayerDashAttack &&
+                    eventData.ReadyCueType != ReadyCueType.None)
+                {
+                    result.AddError(ErrorCodePlayerDashReadyCueInvalid, "PlayerDashAttack Ready event is treated as Ready Mark and must not set ReadyCueType.", i);
                 }
 
                 if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType == ReadyCueType.Move)
@@ -162,16 +172,22 @@ namespace KalBeat.Charting
                 }
 
                 if (eventData.Phase == CombatEventPhase.Timing &&
-                    eventData.Kind == CombatEventKind.MeleeThreatCounterable)
+                    (eventData.Kind == CombatEventKind.MeleeThreatCounterable ||
+                     eventData.Kind == CombatEventKind.PlayerDashAttack))
                 {
+                    if (eventData.TargetBandUnits < 0f)
+                    {
+                        result.AddError(ErrorCodeTargetBandInvalid, "Timing event must set TargetBandUnits greater than or equal to 0.", i);
+                    }
+
                     if (eventData.PlayerKnockbackUnits < 0f)
                     {
-                        result.AddError(ErrorCodeCounterPlayerKnockbackInvalid, "Counterable Timing event must set PlayerKnockbackUnits greater than or equal to 0.", i);
+                        result.AddError(ErrorCodeCounterPlayerKnockbackInvalid, "Timing event must set PlayerKnockbackUnits greater than or equal to 0.", i);
                     }
 
                     if (eventData.MonsterKnockbackUnits < 0f)
                     {
-                        result.AddError(ErrorCodeCounterMonsterKnockbackInvalid, "Counterable Timing event must set MonsterKnockbackUnits greater than or equal to 0.", i);
+                        result.AddError(ErrorCodeCounterMonsterKnockbackInvalid, "Timing event must set MonsterKnockbackUnits greater than or equal to 0.", i);
                     }
                 }
 

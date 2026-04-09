@@ -232,9 +232,69 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 1
     monsterKnockbackUnits: 2
+  - beat: 28
+    lane: 0
+    kind: 3
+    phase: 0
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+  - beat: 28.5
+    lane: 0
+    kind: 3
+    phase: 0
+    stepIndex: 1
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+  - beat: 30
+    lane: 0
+    kind: 3
+    phase: 1
+    stepIndex: 2
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 1
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+  - beat: 30.5
+    lane: 0
+    kind: 3
+    phase: 1
+    stepIndex: 3
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 1
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 1
+    monsterKnockbackUnits: 2
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: 3880962413cf566606421401110fe30f
+    sourceSignature: 39da780ee959695c303373a0e10e2bf8
     isValid: 1
     invalidReason: 
     steps:
@@ -260,6 +320,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: 0, y: 0}
       startMonsterLocalPos: {x: 0, y: 4}
       endMonsterLocalPos: {x: 0, y: 4}
+      playerApproachLocalPos: {x: 0, y: 0}
       lockedPlayerLocalPos: {x: 0, y: 0}
       monsterApproachLocalPos: {x: 0, y: 4}
       entryBandUnits: 4
@@ -288,6 +349,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -4, y: 0}
       startMonsterLocalPos: {x: 0, y: 4}
       endMonsterLocalPos: {x: 0, y: 0}
+      playerApproachLocalPos: {x: 0, y: 0}
       lockedPlayerLocalPos: {x: 0, y: 0}
       monsterApproachLocalPos: {x: 0, y: 0}
       entryBandUnits: 4
@@ -316,6 +378,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -4, y: 0}
       startMonsterLocalPos: {x: 0, y: 0}
       endMonsterLocalPos: {x: -0.5, y: 1.9364917}
+      playerApproachLocalPos: {x: -4, y: 0}
       lockedPlayerLocalPos: {x: -4, y: 0}
       monsterApproachLocalPos: {x: 0, y: 0}
       entryBandUnits: 4
@@ -344,6 +407,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -4, y: 0}
       startMonsterLocalPos: {x: -0.5, y: 1.9364917}
       endMonsterLocalPos: {x: -0.57294905, y: -2.0628428}
+      playerApproachLocalPos: {x: -4, y: 0}
       lockedPlayerLocalPos: {x: -4, y: 0}
       monsterApproachLocalPos: {x: -0.5, y: 1.9364917}
       entryBandUnits: 4
@@ -372,6 +436,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       startMonsterLocalPos: {x: -0.57294905, y: -2.0628428}
       endMonsterLocalPos: {x: -4, y: 0}
+      playerApproachLocalPos: {x: -4, y: 0}
       lockedPlayerLocalPos: {x: -4, y: 0}
       monsterApproachLocalPos: {x: -4, y: 0}
       entryBandUnits: 4
@@ -400,6 +465,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       startMonsterLocalPos: {x: -4, y: 0}
       endMonsterLocalPos: {x: -2.0830307, y: -0.5702881}
+      playerApproachLocalPos: {x: -1.9371572, y: 3.427051}
       lockedPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       monsterApproachLocalPos: {x: -4, y: 0}
       entryBandUnits: 4
@@ -428,6 +494,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       startMonsterLocalPos: {x: -2.0830307, y: -0.5702881}
       endMonsterLocalPos: {x: -5.4718914, y: 1.5547116}
+      playerApproachLocalPos: {x: -1.9371572, y: 3.427051}
       lockedPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       monsterApproachLocalPos: {x: -2.0830307, y: -0.5702881}
       entryBandUnits: 4
@@ -456,6 +523,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       startMonsterLocalPos: {x: -5.4718914, y: 1.5547116}
       endMonsterLocalPos: {x: -1.9371572, y: 3.427051}
+      playerApproachLocalPos: {x: -1.9371572, y: 3.427051}
       lockedPlayerLocalPos: {x: -1.9371572, y: 3.427051}
       monsterApproachLocalPos: {x: -1.9371572, y: 3.427051}
       entryBandUnits: 4
@@ -484,6 +552,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       startMonsterLocalPos: {x: -1.9371572, y: 3.427051}
       endMonsterLocalPos: {x: -1.9371572, y: 3.427051}
+      playerApproachLocalPos: {x: -3.8094966, y: 6.9617853}
       lockedPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       monsterApproachLocalPos: {x: -1.9371572, y: 3.427051}
       entryBandUnits: 4
@@ -512,6 +581,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       startMonsterLocalPos: {x: -1.9371572, y: 3.427051}
       endMonsterLocalPos: {x: -1.9371576, y: 3.427051}
+      playerApproachLocalPos: {x: -3.8094966, y: 6.9617853}
       lockedPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       monsterApproachLocalPos: {x: -3.3414118, y: 6.0781016}
       entryBandUnits: 4
@@ -540,6 +610,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       startMonsterLocalPos: {x: -1.9371576, y: 3.427051}
       endMonsterLocalPos: {x: -1.9371576, y: 3.427051}
+      playerApproachLocalPos: {x: -3.8094966, y: 6.9617853}
       lockedPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       monsterApproachLocalPos: {x: -1.9371576, y: 3.427051}
       entryBandUnits: 4
@@ -568,6 +639,7 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       startMonsterLocalPos: {x: -1.9371576, y: 3.427051}
       endMonsterLocalPos: {x: -5.934497, y: 3.5729249}
+      playerApproachLocalPos: {x: -3.8094966, y: 6.9617853}
       lockedPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       monsterApproachLocalPos: {x: -1.9371576, y: 3.427051}
       entryBandUnits: 4
@@ -596,9 +668,126 @@ MonoBehaviour:
       endPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
       startMonsterLocalPos: {x: -5.934497, y: 3.5729249}
       endMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      playerApproachLocalPos: {x: -3.8094966, y: 6.9617853}
       lockedPlayerLocalPos: {x: -3.8094966, y: 6.9617853}
       monsterApproachLocalPos: {x: -4.340747, y: 6.11457}
       entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 1
+      monsterKnockbackUnits: 2
+    - monsterId: boar
+      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      sourceBeat: 28
+      lane: 0
+      kind: 3
+      phase: 0
+      stepIndex: 0
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 15.376728
+      hitSec: 15.376728
+      monsterDurationSec: 0
+      playerStartSec: 15.376728
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      endPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      startMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      endMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      playerApproachLocalPos: {x: -3.2782464, y: 7.8090005}
+      lockedPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      monsterApproachLocalPos: {x: -5.403247, y: 4.4201403}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+    - monsterId: boar
+      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      sourceBeat: 28.5
+      lane: 0
+      kind: 3
+      phase: 0
+      stepIndex: 1
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 15.649455
+      hitSec: 15.649455
+      monsterDurationSec: 0
+      playerStartSec: 15.649455
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      endPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      startMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      endMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      playerApproachLocalPos: {x: -3.2782464, y: 7.8090005}
+      lockedPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      monsterApproachLocalPos: {x: -5.403247, y: 4.4201403}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+    - monsterId: boar
+      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      sourceBeat: 30
+      lane: 0
+      kind: 3
+      phase: 1
+      stepIndex: 2
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 1
+      movementDirectionHint: 0
+      monsterStartSec: 16.467636
+      hitSec: 16.467636
+      monsterDurationSec: 0.2
+      playerStartSec: 16.267635
+      playerDurationSec: 0.2
+      startPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      endPlayerLocalPos: {x: -4.871997, y: 5.2673554}
+      startMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      endMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      playerApproachLocalPos: {x: -4.871997, y: 5.2673554}
+      lockedPlayerLocalPos: {x: -3.2782464, y: 7.8090005}
+      monsterApproachLocalPos: {x: -5.403247, y: 4.4201403}
+      entryBandUnits: 4
+      exitBandUnits: 1
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+    - monsterId: boar
+      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      sourceBeat: 30.5
+      lane: 0
+      kind: 3
+      phase: 1
+      stepIndex: 3
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 1
+      movementDirectionHint: 0
+      monsterStartSec: 16.740364
+      hitSec: 16.740364
+      monsterDurationSec: 0
+      playerStartSec: 16.740364
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -4.871997, y: 5.2673554}
+      endPlayerLocalPos: {x: -4.340747, y: 6.1145706}
+      startMonsterLocalPos: {x: -5.403247, y: 4.4201403}
+      endMonsterLocalPos: {x: -6.465747, y: 2.72571}
+      playerApproachLocalPos: {x: -4.871997, y: 5.2673554}
+      lockedPlayerLocalPos: {x: -4.871997, y: 5.2673554}
+      monsterApproachLocalPos: {x: -5.403247, y: 4.4201403}
+      entryBandUnits: 1
       exitBandUnits: 4
       playerKnockbackUnits: 1
       monsterKnockbackUnits: 2

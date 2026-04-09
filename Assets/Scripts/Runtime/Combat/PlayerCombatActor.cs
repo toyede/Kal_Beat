@@ -71,6 +71,17 @@ namespace KalBeat.Combat
             StartMove(duelRoot.ConvertDuelLocalToWorld(targetLocalPosition), durationSec > 0f ? durationSec : defaultMoveDurationSec);
         }
 
+        public void PlayResolvedApproachMove(Vector2 targetLocalPosition, float durationSec)
+        {
+            if (duelRoot == null)
+            {
+                return;
+            }
+
+            ApplyColor(defaultColor);
+            StartMove(duelRoot.ConvertDuelLocalToWorld(targetLocalPosition), durationSec > 0f ? durationSec : defaultMoveDurationSec);
+        }
+
         private void StartMove(Vector3 targetPosition, float durationSec)
         {
             if (activeMoveRoutine != null)

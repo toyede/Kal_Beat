@@ -8,10 +8,16 @@ namespace KalBeat.Combat
     {
         [SerializeField] private MonsterDefinition definition;
         [SerializeField] private Renderer bodyRenderer;
+        [SerializeField] private Transform attackMarkAnchor;
         [SerializeField] private Color defaultColor = Color.white;
+        [SerializeField] private Color readyMarkColor = Color.white;
+        [SerializeField] private Vector2 readyMarkSize = new Vector2(0.7f, 0.7f);
+        [SerializeField] private float readyMarkDurationSec = 0.15f;
 
         private CombatDuelRoot duelRoot;
         private Coroutine activeMoveRoutine;
+        private CombatReadyMarkView readyMarkView;
+        private bool attackMarkAnchorWarningLogged;
 
         public MonsterDefinition Definition => definition;
         protected CombatDuelRoot DuelRoot => duelRoot;
@@ -20,6 +26,7 @@ namespace KalBeat.Combat
         {
             duelRoot = root;
             TryAssignRenderer();
+            TryAssignAttackMarkAnchor();
             ApplyColor(defaultColor);
         }
 
@@ -36,6 +43,7 @@ namespace KalBeat.Combat
                 transform.position = duelRoot.GetMonsterBaseWorldPosition();
             }
 
+            HideReadyMark();
             ApplyColor(defaultColor);
             duelRoot?.RefreshActorFacing();
         }
@@ -97,6 +105,29 @@ namespace KalBeat.Combat
         protected void RestoreDefaultColor()
         {
             ApplyColor(defaultColor);
+        }
+
+        protected void ShowReadyMark()
+        {
+            TryAssignAttackMarkAnchor();
+            if (attackMarkAnchor == null)
+            {
+                if (!attackMarkAnchorWarningLogged)
+                {
+                    Debug.LogWarning($"{name} is missing AttackMarkAnchor. Add a child GameObject named AttackMarkAnchor under the monster to show PlayerDashAttack Ready Mark.", this);
+                    attackMarkAnchorWarningLogged = true;
+                }
+
+                return;
+            }
+
+            EnsureReadyMarkView();
+            readyMarkView?.Show(readyMarkDurationSec, readyMarkColor, readyMarkSize);
+        }
+
+        protected void HideReadyMark()
+        {
+            readyMarkView?.Hide();
         }
 
         protected void MoveForwardUnits(float units, float durationSec)
@@ -181,6 +212,47 @@ namespace KalBeat.Combat
             }
         }
 
+        private void TryAssignAttackMarkAnchor()
+        {
+            if (attackMarkAnchor == null)
+            {
+                Transform foundAnchor = transform.Find("AttackMarkAnchor");
+                if (foundAnchor != null)
+                {
+                    attackMarkAnchor = foundAnchor;
+                }
+            }
+        }
+
+        private void EnsureReadyMarkView()
+        {
+            if (readyMarkView != null || attackMarkAnchor == null)
+            {
+                return;
+            }
+
+            Transform existingChild = attackMarkAnchor.Find("ReadyMarkView");
+            if (existingChild != null && existingChild.TryGetComponent(out CombatReadyMarkView existingView))
+            {
+                readyMarkView = existingView;
+                return;
+            }
+
+            GameObject markObject = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            markObject.name = "ReadyMarkView";
+            markObject.transform.SetParent(attackMarkAnchor, false);
+            markObject.transform.localPosition = Vector3.zero;
+            markObject.transform.localRotation = Quaternion.identity;
+
+            Collider quadCollider = markObject.GetComponent<Collider>();
+            if (quadCollider != null)
+            {
+                Destroy(quadCollider);
+            }
+
+            readyMarkView = markObject.AddComponent<CombatReadyMarkView>();
+        }
+
         private void ApplyColor(Color color)
         {
             if (bodyRenderer == null)
@@ -194,6 +266,10 @@ namespace KalBeat.Combat
         private void OnValidate()
         {
             TryAssignRenderer();
+            TryAssignAttackMarkAnchor();
+            readyMarkDurationSec = Mathf.Max(0.01f, readyMarkDurationSec);
+            readyMarkSize.x = Mathf.Max(0.01f, readyMarkSize.x);
+            readyMarkSize.y = Mathf.Max(0.01f, readyMarkSize.y);
         }
     }
 }

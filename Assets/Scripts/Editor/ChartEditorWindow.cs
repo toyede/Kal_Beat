@@ -676,11 +676,19 @@ namespace KalBeat.Charting.Editor
             MonsterDefinition laneMonsterDefinition = nextLaneMonsterDefinition;
             if (nextPhase == CombatEventPhase.Ready)
             {
-                ReadyCueType[] readyCueOptions = GetAllowedReadyCueTypes(laneMonsterDefinition);
-                string[] readyCueLabels = BuildReadyCueLabels(readyCueOptions);
-                int readyCueIndex = FindReadyCueIndex(readyCueOptions, selectedEvent.ReadyCueType);
-                readyCueIndex = EditorGUILayout.Popup("Ready Cue", readyCueIndex, readyCueLabels);
-                nextReadyCueType = readyCueOptions[readyCueIndex];
+                if (nextKind == CombatEventKind.PlayerDashAttack)
+                {
+                    EditorGUILayout.LabelField("Ready Cue", "Mark");
+                    nextReadyCueType = ReadyCueType.None;
+                }
+                else
+                {
+                    ReadyCueType[] readyCueOptions = GetAllowedReadyCueTypes(laneMonsterDefinition);
+                    string[] readyCueLabels = BuildReadyCueLabels(readyCueOptions);
+                    int readyCueIndex = FindReadyCueIndex(readyCueOptions, selectedEvent.ReadyCueType);
+                    readyCueIndex = EditorGUILayout.Popup("Ready Cue", readyCueIndex, readyCueLabels);
+                    nextReadyCueType = readyCueOptions[readyCueIndex];
+                }
             }
 
             bool shouldShowDirectionHint = ShouldShowDirectionHint(nextKind, nextPhase, nextReadyCueType);
@@ -978,7 +986,8 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
-            if (eventKind != CombatEventKind.MeleeThreatCounterable)
+            if (eventKind != CombatEventKind.MeleeThreatCounterable &&
+                eventKind != CombatEventKind.PlayerDashAttack)
             {
                 eventData.PlayerKnockbackUnits = 0f;
                 eventData.MonsterKnockbackUnits = 0f;
@@ -2264,7 +2273,8 @@ namespace KalBeat.Charting.Editor
                 if (stepDefinition.Phase == CombatEventPhase.Timing)
                 {
                     string timingText;
-                    if (patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable)
+                    if (patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable ||
+                        patternDefinition.CombatKind == CombatEventKind.PlayerDashAttack)
                     {
                         timingText =
                             $"Timing [Approach Band {stepDefinition.TargetBandUnits:0.###}, P Knockback {stepDefinition.PlayerKnockbackUnits:0.###}, M Knockback {stepDefinition.MonsterKnockbackUnits:0.###}]";
@@ -2280,11 +2290,14 @@ namespace KalBeat.Charting.Editor
                     continue;
                 }
 
-                string cueText = stepDefinition.ReadyCueType == ReadyCueType.None
+                string cueText = patternDefinition.CombatKind == CombatEventKind.PlayerDashAttack
+                    ? "Ready Mark"
+                    : stepDefinition.ReadyCueType == ReadyCueType.None
                     ? "Ready"
                     : stepDefinition.ReadyCueType.ToString();
 
-                if (stepDefinition.ReadyCueType == ReadyCueType.Move)
+                if (patternDefinition.CombatKind != CombatEventKind.PlayerDashAttack &&
+                    stepDefinition.ReadyCueType == ReadyCueType.Move)
                 {
                     string moveDirectionText = stepDefinition.MovementDirectionHint == MovementDirectionHint.None
                         ? "None"
@@ -2344,40 +2357,58 @@ namespace KalBeat.Charting.Editor
             for (int i = 0; i < orderedSteps.Count; i++)
             {
                 PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (stepDefinition.BeatOffsetFromTiming > 0f)
+                {
+                    errorMessage = "Pattern steps cannot be placed after the final Timing step.";
+                    return false;
+                }
+
                 if (stepDefinition.Phase != CombatEventPhase.Timing)
                 {
                     continue;
                 }
 
-                if (!Mathf.Approximately(stepDefinition.BeatOffsetFromTiming, 0f))
+                if (Mathf.Approximately(stepDefinition.BeatOffsetFromTiming, 0f))
                 {
-                    errorMessage = "Timing step must be placed at beat offset 0.";
-                    return false;
-                }
+                    if (timingStepIndex >= 0)
+                    {
+                        errorMessage = "Pattern definition can only contain one final Timing step at beat offset 0.";
+                        return false;
+                    }
 
-                if (timingStepIndex >= 0)
-                {
-                    errorMessage = "Pattern definition can only contain one Timing step.";
-                    return false;
+                    timingStepIndex = i;
                 }
-
-                timingStepIndex = i;
             }
 
             if (timingStepIndex < 0)
             {
-                errorMessage = "Pattern definition must contain one Timing step at beat offset 0.";
+                errorMessage = "Pattern definition must contain one final Timing step at beat offset 0.";
                 return false;
             }
 
             for (int i = 0; i < orderedSteps.Count; i++)
             {
                 PatternStepDefinition stepDefinition = orderedSteps[i];
+                if (i != timingStepIndex && stepDefinition.BeatOffsetFromTiming >= 0f)
+                {
+                    errorMessage = "Only the final Timing step can use beat offset 0. Other steps must be placed before it.";
+                    return false;
+                }
+
                 if (stepDefinition.Phase == CombatEventPhase.Timing &&
-                    patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable &&
+                    (patternDefinition.CombatKind == CombatEventKind.MeleeThreatCounterable ||
+                     patternDefinition.CombatKind == CombatEventKind.PlayerDashAttack) &&
                     stepDefinition.TargetBandUnits < 0f)
                 {
-                    errorMessage = "Counterable Timing step must set TargetBandUnits greater than or equal to 0.";
+                    errorMessage = "Timing step must set TargetBandUnits greater than or equal to 0.";
+                    return false;
+                }
+
+                if (patternDefinition.CombatKind == CombatEventKind.PlayerDashAttack &&
+                    stepDefinition.Phase == CombatEventPhase.Ready &&
+                    stepDefinition.ReadyCueType != ReadyCueType.None)
+                {
+                    errorMessage = "PlayerDashAttack Ready step is always interpreted as Ready Mark.";
                     return false;
                 }
 

@@ -200,6 +200,7 @@ namespace KalBeat.Charting
                     HitSec = hitSec,
                     StartPlayerLocalPos = currentPlayerLocalPosition,
                     StartMonsterLocalPos = currentMonsterLocalPosition,
+                    PlayerApproachLocalPos = currentPlayerLocalPosition,
                     LockedPlayerLocalPos = currentPlayerLocalPosition,
                     MonsterApproachLocalPos = currentMonsterLocalPosition,
                     EntryBandUnits = currentBandUnits,
@@ -246,50 +247,81 @@ namespace KalBeat.Charting
 
                     case CombatEventPhase.Timing:
                         if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
-                            eventData.Kind != CombatEventKind.MeleeThreatCounterable)
+                            eventData.Kind != CombatEventKind.MeleeThreatCounterable &&
+                            eventData.Kind != CombatEventKind.PlayerDashAttack)
                         {
                             errorMessage =
-                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly} and {CombatEventKind.MeleeThreatCounterable}.";
+                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}, {CombatEventKind.MeleeThreatCounterable}, and {CombatEventKind.PlayerDashAttack}.";
                             chart.ResolvedTimeline.SetInvalid(errorMessage);
                             return false;
                         }
 
-                        Vector2 approachTargetLocalPosition = ResolveTimingApproachTarget(
-                            currentPlayerLocalPosition,
-                            currentMonsterLocalPosition,
-                            eventData.TargetBandUnits);
-                        float approachUnits = CombatDuelMath.GetBandUnits(currentMonsterLocalPosition, approachTargetLocalPosition);
-                        if (!monsterDefinition.TryGetTimingApproachDurationSec(approachUnits, out monsterDurationSec))
+                        if (eventData.Kind == CombatEventKind.PlayerDashAttack)
                         {
-                            errorMessage =
-                                $"Monster '{monsterDefinition.DisplayName}' does not define TimingApproachDuration for {approachUnits:0.###} units.";
-                            chart.ResolvedTimeline.SetInvalid(errorMessage);
-                            return false;
-                        }
-
-                        resolvedStep.MonsterApproachLocalPos = approachTargetLocalPosition;
-
-                        if (eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly)
-                        {
-                            endMonsterLocalPosition = approachTargetLocalPosition;
-                            endPlayerLocalPosition = CombatDuelMath.ResolvePlayerDirectionTarget(
+                            Vector2 playerApproachLocalPosition = ResolvePlayerDashApproachTarget(
                                 currentPlayerLocalPosition,
                                 currentMonsterLocalPosition,
-                                eventData.DirectionHint == PlayerRelativeDirection.None ? PlayerRelativeDirection.Right : eventData.DirectionHint,
-                                DefaultMeleeDodgeResolveUnits);
-                        }
-                        else
-                        {
+                                eventData.TargetBandUnits);
+                            float playerApproachUnits = CombatDuelMath.GetBandUnits(currentPlayerLocalPosition, playerApproachLocalPosition);
+                            if (!TryResolveApproachDurationSec(monsterDefinition, playerApproachUnits, out playerDurationSec))
+                            {
+                                errorMessage =
+                                    $"Monster '{monsterDefinition.DisplayName}' does not define TimingApproachDuration for {playerApproachUnits:0.###} units.";
+                                chart.ResolvedTimeline.SetInvalid(errorMessage);
+                                return false;
+                            }
+
+                            resolvedStep.PlayerApproachLocalPos = playerApproachLocalPosition;
                             CombatDuelMath.ResolveCounterKnockbackTargets(
-                                currentPlayerLocalPosition,
-                                approachTargetLocalPosition,
+                                playerApproachLocalPosition,
+                                currentMonsterLocalPosition,
                                 eventData.PlayerKnockbackUnits,
                                 eventData.MonsterKnockbackUnits,
                                 out endPlayerLocalPosition,
                                 out endMonsterLocalPosition);
-                        }
 
-                        playerDurationSec = monsterDurationSec;
+                            playerStartSec = hitSec - playerDurationSec;
+                            monsterDurationSec = playerDurationSec;
+                        }
+                        else
+                        {
+                            Vector2 approachTargetLocalPosition = ResolveTimingApproachTarget(
+                                currentPlayerLocalPosition,
+                                currentMonsterLocalPosition,
+                                eventData.TargetBandUnits);
+                            float approachUnits = CombatDuelMath.GetBandUnits(currentMonsterLocalPosition, approachTargetLocalPosition);
+                            if (!TryResolveApproachDurationSec(monsterDefinition, approachUnits, out monsterDurationSec))
+                            {
+                                errorMessage =
+                                    $"Monster '{monsterDefinition.DisplayName}' does not define TimingApproachDuration for {approachUnits:0.###} units.";
+                                chart.ResolvedTimeline.SetInvalid(errorMessage);
+                                return false;
+                            }
+
+                            resolvedStep.MonsterApproachLocalPos = approachTargetLocalPosition;
+
+                            if (eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly)
+                            {
+                                endMonsterLocalPosition = approachTargetLocalPosition;
+                                endPlayerLocalPosition = CombatDuelMath.ResolvePlayerDirectionTarget(
+                                    currentPlayerLocalPosition,
+                                    currentMonsterLocalPosition,
+                                    eventData.DirectionHint == PlayerRelativeDirection.None ? PlayerRelativeDirection.Right : eventData.DirectionHint,
+                                    DefaultMeleeDodgeResolveUnits);
+                            }
+                            else
+                            {
+                                CombatDuelMath.ResolveCounterKnockbackTargets(
+                                    currentPlayerLocalPosition,
+                                    approachTargetLocalPosition,
+                                    eventData.PlayerKnockbackUnits,
+                                    eventData.MonsterKnockbackUnits,
+                                    out endPlayerLocalPosition,
+                                    out endMonsterLocalPosition);
+                            }
+
+                            playerDurationSec = monsterDurationSec;
+                        }
                         break;
 
                     default:
@@ -299,7 +331,10 @@ namespace KalBeat.Charting
                 }
 
                 resolvedStep.MonsterDurationSec = monsterDurationSec;
-                resolvedStep.MonsterStartSec = hitSec - monsterDurationSec;
+                resolvedStep.MonsterStartSec = eventData.Kind == CombatEventKind.PlayerDashAttack &&
+                                               eventData.Phase == CombatEventPhase.Timing
+                    ? hitSec
+                    : hitSec - monsterDurationSec;
                 resolvedStep.PlayerStartSec = playerStartSec;
                 resolvedStep.PlayerDurationSec = playerDurationSec;
                 resolvedStep.EndPlayerLocalPos = endPlayerLocalPosition;
@@ -310,6 +345,14 @@ namespace KalBeat.Charting
                 {
                     errorMessage =
                         $"Step at beat {eventData.Beat:0.###} must start before time 0. Increase chart offset or reduce movement duration.";
+                    chart.ResolvedTimeline.SetInvalid(errorMessage);
+                    return false;
+                }
+
+                if (resolvedStep.PlayerStartSec < 0f)
+                {
+                    errorMessage =
+                        $"Player action at beat {eventData.Beat:0.###} must start before time 0. Increase chart offset or reduce movement duration.";
                     chart.ResolvedTimeline.SetInvalid(errorMessage);
                     return false;
                 }
@@ -340,6 +383,30 @@ namespace KalBeat.Charting
             }
 
             return CombatDuelMath.ResolveForwardToBand(playerLocalPosition, monsterLocalPosition, targetBandUnits);
+        }
+
+        private static Vector2 ResolvePlayerDashApproachTarget(
+            Vector2 playerLocalPosition,
+            Vector2 monsterLocalPosition,
+            float targetBandUnits)
+        {
+            if (targetBandUnits <= 0f)
+            {
+                return monsterLocalPosition;
+            }
+
+            return CombatDuelMath.ResolvePlayerApproachToBand(playerLocalPosition, monsterLocalPosition, targetBandUnits);
+        }
+
+        private static bool TryResolveApproachDurationSec(MonsterDefinition monsterDefinition, float approachUnits, out float durationSec)
+        {
+            durationSec = 0f;
+            if (approachUnits <= 0.0001f)
+            {
+                return true;
+            }
+
+            return monsterDefinition.TryGetTimingApproachDurationSec(approachUnits, out durationSec);
         }
 
         private static List<ChartEventData> BuildOrderedEvents(List<ChartEventData> sourceEvents)

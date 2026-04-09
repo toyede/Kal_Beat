@@ -20,9 +20,11 @@ namespace KalBeat.Combat
         [SerializeField] private bool enableJudgementLogs = true;
 
         private readonly List<ResolvedCombatStep> runtimeMonsterSteps = new List<ResolvedCombatStep>();
+        private readonly List<ResolvedCombatStep> runtimePlayerSteps = new List<ResolvedCombatStep>();
         private readonly List<ResolvedCombatStep> runtimeReadyCueSteps = new List<ResolvedCombatStep>();
         private EventInstance musicEventInstance;
         private int nextMonsterStartIndex;
+        private int nextPlayerStartIndex;
         private int nextReadyCueIndex;
         private bool playbackStarted;
         private bool runtimeTimelineReady;
@@ -54,6 +56,28 @@ namespace KalBeat.Combat
 
             float currentTimeSec = timelinePositionMs * 0.001f;
             judgementSystem?.UpdateAutoMiss(currentTimeSec);
+
+            while (nextPlayerStartIndex < runtimePlayerSteps.Count)
+            {
+                ResolvedCombatStep resolvedStep = runtimePlayerSteps[nextPlayerStartIndex];
+                if (resolvedStep == null)
+                {
+                    nextPlayerStartIndex++;
+                    continue;
+                }
+
+                if (resolvedStep.PlayerStartSec > currentTimeSec + 0.0001f)
+                {
+                    break;
+                }
+
+                if (playerActor != null)
+                {
+                    playerActor.PlayResolvedApproachMove(resolvedStep.PlayerApproachLocalPos, resolvedStep.PlayerDurationSec);
+                }
+
+                nextPlayerStartIndex++;
+            }
 
             if (judgementSystem != null && judgementSystem.IsInputPressedThisFrame())
             {
@@ -166,8 +190,10 @@ namespace KalBeat.Combat
         private void BuildRuntimeTimeline()
         {
             runtimeMonsterSteps.Clear();
+            runtimePlayerSteps.Clear();
             runtimeReadyCueSteps.Clear();
             nextMonsterStartIndex = 0;
+            nextPlayerStartIndex = 0;
             nextReadyCueIndex = 0;
             runtimeTimelineReady = false;
             judgementSystem?.Initialize(null);
@@ -219,9 +245,15 @@ namespace KalBeat.Combat
                 {
                     runtimeReadyCueSteps.Add(resolvedStep);
                 }
+
+                if (ShouldStartPlayerStep(resolvedStep))
+                {
+                    runtimePlayerSteps.Add(resolvedStep);
+                }
             }
 
             runtimeMonsterSteps.Sort(CompareResolvedMonsterStarts);
+            runtimePlayerSteps.Sort(CompareResolvedPlayerStarts);
             runtimeReadyCueSteps.Sort(CompareResolvedReadyCueHits);
             judgementSystem?.Initialize(runtimeMonsterSteps);
             runtimeTimelineReady = true;
@@ -348,7 +380,7 @@ namespace KalBeat.Combat
                 case CombatJudgementGrade.Perfect:
                 case CombatJudgementGrade.Good:
                 case CombatJudgementGrade.Miss:
-                    if (playerActor != null && result.ResolvedStep.PlayerDurationSec > 0f)
+                    if (playerActor != null)
                     {
                         playerActor.PlayResolvedReactionMove(
                             result.ResolvedStep.EndPlayerLocalPos,
@@ -365,7 +397,17 @@ namespace KalBeat.Combat
         {
             return resolvedStep != null &&
                    resolvedStep.Phase == CombatEventPhase.Ready &&
-                   (resolvedStep.ReadyCueType == ReadyCueType.Pose || resolvedStep.ReadyCueType == ReadyCueType.Move);
+                   (resolvedStep.ReadyCueType == ReadyCueType.Pose ||
+                    resolvedStep.ReadyCueType == ReadyCueType.Move ||
+                    resolvedStep.Kind == CombatEventKind.PlayerDashAttack);
+        }
+
+        private static bool ShouldStartPlayerStep(ResolvedCombatStep resolvedStep)
+        {
+            return resolvedStep != null &&
+                   resolvedStep.Kind == CombatEventKind.PlayerDashAttack &&
+                   resolvedStep.Phase == CombatEventPhase.Timing &&
+                   resolvedStep.PlayerDurationSec > 0f;
         }
 
         private static int CompareResolvedMonsterStarts(ResolvedCombatStep left, ResolvedCombatStep right)
@@ -424,6 +466,38 @@ namespace KalBeat.Combat
             }
 
             int timeCompare = left.HitSec.CompareTo(right.HitSec);
+            if (timeCompare != 0)
+            {
+                return timeCompare;
+            }
+
+            int laneCompare = left.Lane.CompareTo(right.Lane);
+            if (laneCompare != 0)
+            {
+                return laneCompare;
+            }
+
+            return left.StepIndex.CompareTo(right.StepIndex);
+        }
+
+        private static int CompareResolvedPlayerStarts(ResolvedCombatStep left, ResolvedCombatStep right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int timeCompare = left.PlayerStartSec.CompareTo(right.PlayerStartSec);
             if (timeCompare != 0)
             {
                 return timeCompare;

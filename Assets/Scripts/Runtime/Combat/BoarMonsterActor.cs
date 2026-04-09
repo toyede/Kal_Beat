@@ -12,6 +12,12 @@ namespace KalBeat.Combat
 
         protected override void HandleReady(ChartEventData eventData)
         {
+            if (eventData.Kind == CombatEventKind.PlayerDashAttack)
+            {
+                ShowReadyMark();
+                return;
+            }
+
             if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 eventData.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -26,6 +32,11 @@ namespace KalBeat.Combat
 
         protected override void HandleTiming(ChartEventData eventData)
         {
+            if (eventData.Kind == CombatEventKind.PlayerDashAttack)
+            {
+                return;
+            }
+
             if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 eventData.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -38,6 +49,12 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedReady(ResolvedCombatStep resolvedStep)
         {
+            if (resolvedStep.Kind == CombatEventKind.PlayerDashAttack)
+            {
+                ShowReadyMark();
+                return;
+            }
+
             if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -62,6 +79,11 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedTiming(ResolvedCombatStep resolvedStep)
         {
+            if (resolvedStep.Kind == CombatEventKind.PlayerDashAttack)
+            {
+                return;
+            }
+
             if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -80,13 +102,16 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedJudgementResult(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
         {
-            if (resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable || DuelRoot == null)
+            if ((resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable &&
+                 resolvedStep.Kind != CombatEventKind.PlayerDashAttack) ||
+                DuelRoot == null)
             {
                 return;
             }
 
             SetVisualColor(dashColor);
-            MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos), resolvedStep.MonsterDurationSec);
+            float reactionDurationSec = resolvedStep.MonsterDurationSec > 0f ? resolvedStep.MonsterDurationSec : dashDurationSec;
+            MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos), reactionDurationSec);
         }
 
         protected override void OnMoveCompleted()

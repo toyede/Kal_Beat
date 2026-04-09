@@ -67,6 +67,11 @@ namespace KalBeat.Combat
                     continue;
                 }
 
+                if (combatKind == CombatEventKind.PlayerDashAttack)
+                {
+                    step.ReadyCueType = ReadyCueType.None;
+                }
+
                 if (step.ReadyCueType != ReadyCueType.Move)
                 {
                     step.MovementResolveMode = MovementResolveMode.None;

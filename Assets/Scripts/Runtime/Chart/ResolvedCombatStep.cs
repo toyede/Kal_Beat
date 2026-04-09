@@ -29,6 +29,7 @@ namespace KalBeat.Charting
         [SerializeField] private Vector2 endPlayerLocalPos;
         [SerializeField] private Vector2 startMonsterLocalPos;
         [SerializeField] private Vector2 endMonsterLocalPos;
+        [SerializeField] private Vector2 playerApproachLocalPos;
         [SerializeField] private Vector2 lockedPlayerLocalPos;
         [SerializeField] private Vector2 monsterApproachLocalPos;
         [SerializeField] private float entryBandUnits;
@@ -166,6 +167,12 @@ namespace KalBeat.Charting
         {
             get => endMonsterLocalPos;
             set => endMonsterLocalPos = value;
+        }
+
+        public Vector2 PlayerApproachLocalPos
+        {
+            get => playerApproachLocalPos;
+            set => playerApproachLocalPos = value;
         }
 
         public Vector2 LockedPlayerLocalPos
