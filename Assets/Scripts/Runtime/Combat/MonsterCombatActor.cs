@@ -11,13 +11,13 @@ namespace KalBeat.Combat
         [SerializeField] private Transform attackMarkAnchor;
         [SerializeField] private Color defaultColor = Color.white;
         [SerializeField] private Color readyMarkColor = Color.white;
-        [SerializeField] private Vector2 readyMarkSize = new Vector2(0.7f, 0.7f);
         [SerializeField] private float readyMarkDurationSec = 0.15f;
 
         private CombatDuelRoot duelRoot;
         private Coroutine activeMoveRoutine;
         private CombatReadyMarkView readyMarkView;
         private bool attackMarkAnchorWarningLogged;
+        private bool readyMarkViewWarningLogged;
 
         public MonsterDefinition Definition => definition;
         protected CombatDuelRoot DuelRoot => duelRoot;
@@ -121,8 +121,21 @@ namespace KalBeat.Combat
                 return;
             }
 
-            EnsureReadyMarkView();
-            readyMarkView?.Show(readyMarkDurationSec, readyMarkColor, readyMarkSize);
+            TryAssignReadyMarkView();
+            if (readyMarkView == null)
+            {
+                if (!readyMarkViewWarningLogged)
+                {
+                    Debug.LogWarning(
+                        $"{name} is missing ReadyMarkView under AttackMarkAnchor. Add a child GameObject with SpriteRenderer and CombatReadyMarkView under AttackMarkAnchor to show PlayerDashAttack Ready Mark.",
+                        this);
+                    readyMarkViewWarningLogged = true;
+                }
+
+                return;
+            }
+
+            readyMarkView.Show(readyMarkDurationSec, readyMarkColor);
         }
 
         protected void HideReadyMark()
@@ -224,33 +237,20 @@ namespace KalBeat.Combat
             }
         }
 
-        private void EnsureReadyMarkView()
+        private void TryAssignReadyMarkView()
         {
             if (readyMarkView != null || attackMarkAnchor == null)
             {
                 return;
             }
 
-            Transform existingChild = attackMarkAnchor.Find("ReadyMarkView");
-            if (existingChild != null && existingChild.TryGetComponent(out CombatReadyMarkView existingView))
+            if (attackMarkAnchor.TryGetComponent(out CombatReadyMarkView anchorView))
             {
-                readyMarkView = existingView;
+                readyMarkView = anchorView;
                 return;
             }
 
-            GameObject markObject = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            markObject.name = "ReadyMarkView";
-            markObject.transform.SetParent(attackMarkAnchor, false);
-            markObject.transform.localPosition = Vector3.zero;
-            markObject.transform.localRotation = Quaternion.identity;
-
-            Collider quadCollider = markObject.GetComponent<Collider>();
-            if (quadCollider != null)
-            {
-                Destroy(quadCollider);
-            }
-
-            readyMarkView = markObject.AddComponent<CombatReadyMarkView>();
+            readyMarkView = attackMarkAnchor.GetComponentInChildren<CombatReadyMarkView>(true);
         }
 
         private void ApplyColor(Color color)
@@ -268,8 +268,6 @@ namespace KalBeat.Combat
             TryAssignRenderer();
             TryAssignAttackMarkAnchor();
             readyMarkDurationSec = Mathf.Max(0.01f, readyMarkDurationSec);
-            readyMarkSize.x = Mathf.Max(0.01f, readyMarkSize.x);
-            readyMarkSize.y = Mathf.Max(0.01f, readyMarkSize.y);
         }
     }
 }

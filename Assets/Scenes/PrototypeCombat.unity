@@ -189,6 +189,37 @@ MonoBehaviour:
   perfectWindowMs: 35
   goodWindowMs: 80
   missWindowMs: 130
+--- !u!1 &653801642
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 653801643}
+  m_Layer: 0
+  m_Name: AttackMarkAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &653801643
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 653801642}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.24, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1861207944}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1177522444
 GameObject:
   m_ObjectHideFlags: 0
@@ -526,7 +557,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   definition: {fileID: 11400000, guid: 2bdbde02929facc41970269eec09e984, type: 2}
   bodyRenderer: {fileID: 0}
+  attackMarkAnchor: {fileID: 653801643}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
+  readyMarkColor: {r: 1, g: 1, b: 1, a: 1}
+  readyMarkSize: {x: 0.7, y: 0.7}
+  readyMarkDurationSec: 0.15
   poseColor: {r: 0.95, g: 0.65, b: 0.2, a: 1}
   dashColor: {r: 0.95, g: 0.3, b: 0.3, a: 1}
   dashUnits: 4
@@ -617,7 +652,8 @@ Transform:
   m_LocalPosition: {x: -22.477736, y: -37.825832, z: -43.894485}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 653801643}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2015989142

@@ -6,31 +6,29 @@ namespace KalBeat.Combat
     public sealed class CombatReadyMarkView : MonoBehaviour
     {
         [SerializeField] private float pulseScaleMultiplier = 1.18f;
+        [SerializeField] private SpriteRenderer spriteRenderer;
 
-        private MeshRenderer meshRenderer;
-        private Material runtimeMaterial;
         private Coroutine activeShowRoutine;
         private Vector3 baseScale = Vector3.one;
 
         private void Awake()
         {
             TryAssignRenderer();
-            EnsureMaterial();
+            CacheBaseScale();
             Hide();
         }
 
-        public void Show(float durationSec, Color color, Vector2 size)
+        public void Show(float durationSec, Color color)
         {
             TryAssignRenderer();
-            EnsureMaterial();
-            if (runtimeMaterial == null)
+            if (spriteRenderer == null)
             {
                 return;
             }
 
-            baseScale = new Vector3(Mathf.Max(0.01f, size.x), Mathf.Max(0.01f, size.y), 1f);
+            CacheBaseScale();
             transform.localScale = baseScale;
-            runtimeMaterial.color = color;
+            spriteRenderer.color = color;
 
             if (activeShowRoutine != null)
             {
@@ -48,20 +46,20 @@ namespace KalBeat.Combat
                 activeShowRoutine = null;
             }
 
-            if (meshRenderer != null)
+            if (spriteRenderer != null)
             {
-                meshRenderer.enabled = false;
+                spriteRenderer.enabled = false;
             }
         }
 
         private IEnumerator ShowRoutine(float durationSec)
         {
-            if (meshRenderer == null)
+            if (spriteRenderer == null)
             {
                 yield break;
             }
 
-            meshRenderer.enabled = true;
+            spriteRenderer.enabled = true;
             float safeDuration = Mathf.Max(0.01f, durationSec);
             float elapsed = 0f;
 
@@ -75,13 +73,13 @@ namespace KalBeat.Combat
             }
 
             transform.localScale = baseScale;
-            meshRenderer.enabled = false;
+            spriteRenderer.enabled = false;
             activeShowRoutine = null;
         }
 
         private void LateUpdate()
         {
-            if (meshRenderer == null || !meshRenderer.enabled)
+            if (spriteRenderer == null || !spriteRenderer.enabled)
             {
                 return;
             }
@@ -97,52 +95,25 @@ namespace KalBeat.Combat
 
         private void TryAssignRenderer()
         {
-            if (meshRenderer == null)
+            if (spriteRenderer == null)
             {
-                meshRenderer = GetComponent<MeshRenderer>();
+                spriteRenderer = GetComponent<SpriteRenderer>();
             }
         }
 
-        private void EnsureMaterial()
+        private void CacheBaseScale()
         {
-            if (meshRenderer == null || runtimeMaterial != null)
-            {
-                return;
-            }
-
-            Shader targetShader = Shader.Find("Unlit/Color");
-            if (targetShader == null)
-            {
-                targetShader = Shader.Find("Sprites/Default");
-            }
-
-            if (targetShader == null)
-            {
-                return;
-            }
-
-            runtimeMaterial = new Material(targetShader);
-            runtimeMaterial.color = Color.white;
-            meshRenderer.sharedMaterial = runtimeMaterial;
-            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            meshRenderer.receiveShadows = false;
+            Vector3 currentScale = transform.localScale;
+            baseScale = new Vector3(
+                Mathf.Max(0.01f, currentScale.x),
+                Mathf.Max(0.01f, currentScale.y),
+                Mathf.Max(0.01f, currentScale.z));
         }
 
-        private void OnDestroy()
+        private void OnValidate()
         {
-            if (runtimeMaterial == null)
-            {
-                return;
-            }
-
-            if (Application.isPlaying)
-            {
-                Destroy(runtimeMaterial);
-            }
-            else
-            {
-                DestroyImmediate(runtimeMaterial);
-            }
+            TryAssignRenderer();
+            CacheBaseScale();
         }
     }
 }

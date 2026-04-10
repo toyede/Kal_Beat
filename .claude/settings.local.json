@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:\\\\Users\\\\owner\\\\AppData\\\\Local\\\\unity-cli\\\\unity-cli.exe status:*)",
+      "Bash(/c/Users/owner/AppData/Local/unity-cli/unity-cli.exe status:*)",
+      "Bash(/c/Users/owner/AppData/Local/unity-cli/unity-cli.exe play:*)",
+      "Bash(/c/Users/owner/AppData/Local/unity-cli/unity-cli.exe:*)",
+      "Bash(/c/Users/owner/AppData/Local/unity-cli/unity-cli.exe editor:*)"
+    ]
+  }
+}
