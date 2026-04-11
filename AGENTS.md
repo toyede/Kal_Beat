@@ -13,8 +13,9 @@
 ## Unity CLI Pre-check
 Before executing any Unity-related command:
 1. Run: `unity-cli status`
-   - If `unity-cli` is not available in PATH, use:
+   - If the command is not found, use:
      `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe status`
+   - If `unity-cli` is installed but the current terminal/IDE session does not see it yet, open a new terminal or restart the IDE and try again
 2. Verify:
    - `ready` is present
    - Project path is valid
@@ -23,6 +24,32 @@ Before executing any Unity-related command:
    - Stop execution
    - Ask the user to open Unity or fix the connection
 4. Only proceed if Unity is connected
+
+## Unity Compile Verification
+After code changes to Unity scripts or assets that can affect compilation:
+1. Run: `unity-cli status`
+   - If the command is not found, use:
+     `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe status`
+2. Clear the Unity Console:
+   - Primary:
+     `unity-cli console --clear`
+   - Fallback:
+     `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe console --clear`
+3. Trigger Unity-side recompilation:
+   - Primary:
+     `unity-cli editor refresh --compile`
+   - Fallback:
+     `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe editor refresh --compile`
+4. Fetch the actual Unity compile result:
+   - Primary:
+     `unity-cli console --filter error,warning --lines 100 --stacktrace short`
+   - Fallback:
+     `C:\Users\owner\AppData\Local\unity-cli\unity-cli.exe console --filter error,warning --lines 100 --stacktrace short`
+5. If any compile errors appear:
+   - Fix them when possible in the current turn
+   - Re-run the compile verification steps until the Unity Console is clean or the remaining blocker is clearly explained
+6. Report the compile verification result in the response
+7. Do not rely on `dotnet build` as the primary Unity compile check. Unity Console results are the source of truth.
 
 ## Workflow for New Features
 When adding a new feature:
@@ -99,4 +126,6 @@ Always include:
    - Required prefab creation/update steps.
 3. Assumptions (scene name, existing objects, expected hierarchy).
 4. Test procedure and result summary.
+   - Include whether `unity-cli editor refresh --compile` was run
+   - Include the Unity Console error/warning result
 5. Any unverified items or tests not run.

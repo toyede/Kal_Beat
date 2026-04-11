@@ -12,6 +12,14 @@ namespace KalBeat.Combat
         [SerializeField] private Color goodColor = new Color(0.35f, 0.85f, 0.45f, 1f);
         [SerializeField] private Color hitColor = new Color(0.95f, 0.35f, 0.35f, 1f);
         [SerializeField] private float defaultMoveDurationSec = 0.18f;
+        [SerializeField] private float missArcHeightBase = 0.35f;
+        [SerializeField] private float missArcHeightPerUnit = 0.18f;
+        [SerializeField] private float missArcHeightMin = 0.35f;
+        [SerializeField] private float missArcHeightMax = 1.4f;
+        [SerializeField] private AnimationCurve missArcCurve = new AnimationCurve(
+            new Keyframe(0f, 0f),
+            new Keyframe(0.35f, 1f),
+            new Keyframe(1f, 0f));
 
         private CombatDuelRoot duelRoot;
         private Coroutine activeMoveRoutine;
@@ -68,7 +76,13 @@ namespace KalBeat.Combat
             }
 
             ApplyColor(GetReactionColor(grade));
-            StartMove(duelRoot.ConvertDuelLocalToWorld(targetLocalPosition), durationSec > 0f ? durationSec : defaultMoveDurationSec);
+            Vector3 targetWorldPosition = duelRoot.ConvertDuelLocalToWorld(targetLocalPosition);
+            float resolvedDuration = durationSec > 0f ? durationSec : defaultMoveDurationSec;
+            float missArcHeight = grade == CombatJudgementGrade.Miss
+                ? ResolveMissArcHeight(transform.position, targetWorldPosition)
+                : 0f;
+
+            StartMove(targetWorldPosition, resolvedDuration, missArcHeight);
         }
 
         public void PlayResolvedApproachMove(Vector2 targetLocalPosition, float durationSec)
@@ -79,30 +93,42 @@ namespace KalBeat.Combat
             }
 
             ApplyColor(defaultColor);
-            StartMove(duelRoot.ConvertDuelLocalToWorld(targetLocalPosition), durationSec > 0f ? durationSec : defaultMoveDurationSec);
+            StartMove(
+                duelRoot.ConvertDuelLocalToWorld(targetLocalPosition),
+                durationSec > 0f ? durationSec : defaultMoveDurationSec,
+                0f);
         }
 
-        private void StartMove(Vector3 targetPosition, float durationSec)
+        private void StartMove(Vector3 targetPosition, float durationSec, float arcHeight = 0f)
         {
             if (activeMoveRoutine != null)
             {
                 StopCoroutine(activeMoveRoutine);
             }
 
-            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, durationSec));
+            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, durationSec, arcHeight));
         }
 
-        private IEnumerator MoveRoutine(Vector3 targetPosition, float durationSec)
+        private IEnumerator MoveRoutine(Vector3 targetPosition, float durationSec, float arcHeight)
         {
             Vector3 startPosition = transform.position;
             float safeDuration = Mathf.Max(0.0001f, durationSec);
             float elapsed = 0f;
+            Vector3 arcUp = duelRoot != null ? duelRoot.transform.up : Vector3.up;
 
             while (elapsed < safeDuration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / safeDuration);
-                transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                Vector3 movePosition = Vector3.Lerp(startPosition, targetPosition, t);
+                if (arcHeight > 0f)
+                {
+                    // 미스 연출은 도착점은 유지하되 상하 오프셋만 더해 피격 포물선처럼 보이게 만든다.
+                    float arcOffset = Mathf.Max(0f, missArcCurve.Evaluate(t)) * arcHeight;
+                    movePosition += arcUp * arcOffset;
+                }
+
+                transform.position = movePosition;
                 yield return null;
             }
 
@@ -110,6 +136,14 @@ namespace KalBeat.Combat
             ApplyColor(defaultColor);
             duelRoot?.RefreshActorFacing();
             activeMoveRoutine = null;
+        }
+
+        private float ResolveMissArcHeight(Vector3 startPosition, Vector3 targetPosition)
+        {
+            Vector3 arcUp = duelRoot != null ? duelRoot.transform.up : Vector3.up;
+            float travelDistance = Vector3.ProjectOnPlane(targetPosition - startPosition, arcUp).magnitude;
+            float resolvedArcHeight = missArcHeightBase + (travelDistance * missArcHeightPerUnit);
+            return Mathf.Clamp(resolvedArcHeight, missArcHeightMin, missArcHeightMax);
         }
 
         private void TryAssignRenderer()
@@ -148,6 +182,14 @@ namespace KalBeat.Combat
         private void OnValidate()
         {
             defaultMoveDurationSec = Mathf.Max(0.01f, defaultMoveDurationSec);
+            missArcHeightBase = Mathf.Max(0f, missArcHeightBase);
+            missArcHeightPerUnit = Mathf.Max(0f, missArcHeightPerUnit);
+            missArcHeightMin = Mathf.Max(0f, missArcHeightMin);
+            missArcHeightMax = Mathf.Max(missArcHeightMin, missArcHeightMax);
+            missArcCurve ??= new AnimationCurve(
+                new Keyframe(0f, 0f),
+                new Keyframe(0.35f, 1f),
+                new Keyframe(1f, 0f));
             TryAssignRenderer();
         }
     }
