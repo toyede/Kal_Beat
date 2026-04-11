@@ -22,6 +22,13 @@ namespace KalBeat.Charting
         [SerializeField] private float entryBandUnits;
         [SerializeField] private float playerKnockbackUnits;
         [SerializeField] private float monsterKnockbackUnits;
+        [SerializeField] private string appliedPatternInstanceId = string.Empty;
+        [SerializeField] private string appliedPatternAssetGuid = string.Empty;
+        [SerializeField] private string appliedPatternId = string.Empty;
+        [SerializeField] private string appliedPatternSignature = string.Empty;
+        [SerializeField] private float appliedPatternTimingBeat;
+        [SerializeField] private int appliedPatternTimingStepIndex = -1;
+        [SerializeField] private int appliedPatternStepCount;
 
         public float Beat
         {
@@ -111,6 +118,48 @@ namespace KalBeat.Charting
         {
             get => monsterKnockbackUnits;
             set => monsterKnockbackUnits = value;
+        }
+
+        public string AppliedPatternInstanceId
+        {
+            get => appliedPatternInstanceId;
+            set => appliedPatternInstanceId = value;
+        }
+
+        public string AppliedPatternAssetGuid
+        {
+            get => appliedPatternAssetGuid;
+            set => appliedPatternAssetGuid = value;
+        }
+
+        public string AppliedPatternId
+        {
+            get => appliedPatternId;
+            set => appliedPatternId = value;
+        }
+
+        public string AppliedPatternSignature
+        {
+            get => appliedPatternSignature;
+            set => appliedPatternSignature = value;
+        }
+
+        public float AppliedPatternTimingBeat
+        {
+            get => appliedPatternTimingBeat;
+            set => appliedPatternTimingBeat = value;
+        }
+
+        public int AppliedPatternTimingStepIndex
+        {
+            get => appliedPatternTimingStepIndex;
+            set => appliedPatternTimingStepIndex = value;
+        }
+
+        public int AppliedPatternStepCount
+        {
+            get => appliedPatternStepCount;
+            set => appliedPatternStepCount = value;
         }
     }
 }

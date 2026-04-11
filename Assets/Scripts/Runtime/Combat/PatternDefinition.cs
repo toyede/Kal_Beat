@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text;
 using KalBeat.Charting;
 using UnityEngine;
 
@@ -38,6 +40,45 @@ namespace KalBeat.Combat
         }
 
         public List<PatternStepDefinition> Steps => steps;
+
+        public string BuildSyncSignature()
+        {
+            StringBuilder builder = new StringBuilder(256);
+            builder.Append((int)combatKind).Append('|')
+                .Append(entryBandUnits.ToString("R")).Append('|');
+
+            List<PatternStepDefinition> orderedSteps = new List<PatternStepDefinition>();
+            if (steps != null)
+            {
+                for (int i = 0; i < steps.Count; i++)
+                {
+                    if (steps[i] != null)
+                    {
+                        orderedSteps.Add(steps[i]);
+                    }
+                }
+            }
+
+            orderedSteps.Sort(CompareSteps);
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition step = orderedSteps[i];
+                builder.Append(step.BeatOffsetFromTiming.ToString("R")).Append(':')
+                    .Append((int)step.Phase).Append(':')
+                    .Append((int)step.ReadyCueType).Append(':')
+                    .Append((int)step.DirectionHint).Append(':')
+                    .Append((int)step.MovementResolveMode).Append(':')
+                    .Append(step.MoveUnits.ToString("R")).Append(':')
+                    .Append(step.TargetBandUnits.ToString("R")).Append(':')
+                    .Append((int)step.MovementDirectionHint).Append(':')
+                    .Append(step.PlayerKnockbackUnits.ToString("R")).Append(':')
+                    .Append(step.MonsterKnockbackUnits.ToString("R"))
+                    .Append('|');
+            }
+
+            return Hash128.Compute(builder.ToString()).ToString();
+        }
 
         private void OnValidate()
         {
@@ -83,6 +124,32 @@ namespace KalBeat.Combat
                 step.PlayerKnockbackUnits = 0f;
                 step.MonsterKnockbackUnits = 0f;
             }
+        }
+
+        private static int CompareSteps(PatternStepDefinition left, PatternStepDefinition right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int beatCompare = left.BeatOffsetFromTiming.CompareTo(right.BeatOffsetFromTiming);
+            if (beatCompare != 0)
+            {
+                return beatCompare;
+            }
+
+            return left.Phase.CompareTo(right.Phase);
         }
     }
 }

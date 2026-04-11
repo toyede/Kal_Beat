@@ -68,6 +68,47 @@ namespace KalBeat.Charting.Editor
 
         private ChartValidationResult lastValidation;
 
+        private sealed class AppliedPatternSyncGroup
+        {
+            public AppliedPatternSyncGroup(string instanceId)
+            {
+                InstanceId = instanceId;
+                Events = new List<ChartEventData>();
+            }
+
+            public string InstanceId { get; }
+            public List<ChartEventData> Events { get; }
+        }
+
+        private readonly struct AppliedPatternMetadata
+        {
+            public AppliedPatternMetadata(
+                string instanceId,
+                string assetGuid,
+                string patternId,
+                string signature,
+                float timingBeat,
+                int timingStepIndex,
+                int stepCount)
+            {
+                InstanceId = instanceId;
+                AssetGuid = assetGuid;
+                PatternId = patternId;
+                Signature = signature;
+                TimingBeat = timingBeat;
+                TimingStepIndex = timingStepIndex;
+                StepCount = stepCount;
+            }
+
+            public string InstanceId { get; }
+            public string AssetGuid { get; }
+            public string PatternId { get; }
+            public string Signature { get; }
+            public float TimingBeat { get; }
+            public int TimingStepIndex { get; }
+            public int StepCount { get; }
+        }
+
         [MenuItem("Tools/KalBeat/Chart Editor")]
         public static void OpenWindow()
         {
@@ -704,6 +745,13 @@ namespace KalBeat.Charting.Editor
 
             if (EditorGUI.EndChangeCheck())
             {
+                bool shouldClearPatternLink =
+                    nextKind != selectedEvent.Kind ||
+                    nextPhase != selectedEvent.Phase ||
+                    nextStepIndex != selectedEvent.StepIndex ||
+                    (nextPhase == CombatEventPhase.Ready && nextReadyCueType != selectedEvent.ReadyCueType) ||
+                    nextDirectionHint != selectedEvent.DirectionHint;
+
                 RecordChartChange("Edit Chart Event");
                 selectedEvent.Beat = snapEnabled ? QuantizeBeat(nextBeat) : Mathf.Max(0f, nextBeat);
                 selectedEvent.Lane = Mathf.Clamp(nextLane, 0, laneCount - 1);
@@ -716,6 +764,12 @@ namespace KalBeat.Charting.Editor
                         ? nextDirectionHint
                         : PlayerRelativeDirection.None;
                 selectedEvent.NudgeMs = nextNudgeMs;
+
+                if (shouldClearPatternLink)
+                {
+                    ClearAppliedPatternLink(selectedEvent);
+                }
+
                 cursorBeat = selectedEvent.Beat;
                 selectedLane = selectedEvent.Lane;
                 SortEvents();
@@ -929,6 +983,7 @@ namespace KalBeat.Charting.Editor
             RecordChartChange("Add Chart Event");
 
             ChartEventData eventData = FindEventInSlot(targetBeat, targetLane);
+            CombatEventKind previousKind = eventData != null ? eventData.Kind : CombatEventKind.None;
             if (eventData == null)
             {
                 eventData = new ChartEventData
@@ -945,6 +1000,11 @@ namespace KalBeat.Charting.Editor
             }
 
             ApplyEventKind(eventData, eventKind);
+            if (eventKind == CombatEventKind.None || previousKind != eventKind)
+            {
+                ClearAppliedPatternLink(eventData);
+            }
+
             selectedEvent = eventData;
             cursorBeat = eventData.Beat;
             selectedLane = eventData.Lane;
@@ -961,7 +1021,13 @@ namespace KalBeat.Charting.Editor
             }
 
             RecordChartChange("Convert Chart Event");
+            CombatEventKind previousKind = selectedEvent.Kind;
             ApplyEventKind(selectedEvent, eventKind);
+            if (eventKind == CombatEventKind.None || previousKind != eventKind)
+            {
+                ClearAppliedPatternLink(selectedEvent);
+            }
+
             SortEvents();
             MarkChartDirty();
         }
@@ -983,6 +1049,7 @@ namespace KalBeat.Charting.Editor
                 eventData.EntryBandUnits = 0f;
                 eventData.PlayerKnockbackUnits = 0f;
                 eventData.MonsterKnockbackUnits = 0f;
+                ClearAppliedPatternLink(eventData);
                 return;
             }
 
@@ -1054,6 +1121,11 @@ namespace KalBeat.Charting.Editor
             }
 
             RecordChartChange("Apply Monster Pattern");
+            AppliedPatternMetadata appliedPatternMetadata = BuildAppliedPatternMetadata(
+                patternDefinition,
+                targetTimingBeat,
+                timingStepIndex,
+                orderedSteps.Count);
 
             for (int i = 0; i < orderedSteps.Count; i++)
             {
@@ -1067,23 +1139,15 @@ namespace KalBeat.Charting.Editor
                     currentChart.Events.Add(targetEvent);
                 }
 
-                float existingNudgeMs = ReferenceEquals(targetEvent, selectedEvent) ? targetEvent.NudgeMs : 0f;
-
-                targetEvent.Beat = targetBeat;
-                targetEvent.Lane = targetLane;
-                targetEvent.Kind = patternDefinition.CombatKind;
-                targetEvent.Phase = stepDefinition.Phase;
-                targetEvent.StepIndex = i;
-                targetEvent.ReadyCueType = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.ReadyCueType : ReadyCueType.None;
-                targetEvent.DirectionHint = stepDefinition.DirectionHint;
-                targetEvent.MovementResolveMode = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementResolveMode : MovementResolveMode.None;
-                targetEvent.MoveUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MoveUnits : 0f;
-                targetEvent.TargetBandUnits = stepDefinition.TargetBandUnits;
-                targetEvent.MovementDirectionHint = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementDirectionHint : MovementDirectionHint.None;
-                targetEvent.EntryBandUnits = patternDefinition.EntryBandUnits;
-                targetEvent.PlayerKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.PlayerKnockbackUnits : 0f;
-                targetEvent.MonsterKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.MonsterKnockbackUnits : 0f;
-                targetEvent.NudgeMs = existingNudgeMs;
+                ApplyPatternStepToEvent(
+                    targetEvent,
+                    patternDefinition,
+                    stepDefinition,
+                    targetBeat,
+                    targetLane,
+                    i,
+                    targetEvent.NudgeMs,
+                    appliedPatternMetadata);
             }
 
             selectedEvent = targetEvents[timingStepIndex];
@@ -1145,6 +1209,12 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
+            if (!TryAutoSyncAppliedPatterns(out int syncedPatternGroupCount, out string autoSyncErrorMessage))
+            {
+                EditorUtility.DisplayDialog("Cannot Save Chart", autoSyncErrorMessage, "OK");
+                return;
+            }
+
             ChartValidationResult validation = ChartValidator.Validate(currentChart);
             if (validation.HasError)
             {
@@ -1162,6 +1232,11 @@ namespace KalBeat.Charting.Editor
             EditorUtility.SetDirty(currentChart);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            if (syncedPatternGroupCount > 0)
+            {
+                ShowNotification(new GUIContent($"Auto-synced {syncedPatternGroupCount} pattern instance(s) before save."));
+            }
         }
 
         private void ImportJsonIntoCurrentChart()
@@ -2478,6 +2553,395 @@ namespace KalBeat.Charting.Editor
             {
                 Undo.RecordObject(currentChart, undoLabel);
             }
+        }
+
+        private AppliedPatternMetadata BuildAppliedPatternMetadata(
+            PatternDefinition patternDefinition,
+            float timingBeat,
+            int timingStepIndex,
+            int stepCount)
+        {
+            string assetPath = AssetDatabase.GetAssetPath(patternDefinition);
+            string assetGuid = string.IsNullOrWhiteSpace(assetPath)
+                ? string.Empty
+                : AssetDatabase.AssetPathToGUID(assetPath);
+
+            return new AppliedPatternMetadata(
+                Guid.NewGuid().ToString("N"),
+                assetGuid,
+                patternDefinition != null ? patternDefinition.PatternId : string.Empty,
+                patternDefinition != null ? patternDefinition.BuildSyncSignature() : string.Empty,
+                timingBeat,
+                timingStepIndex,
+                stepCount);
+        }
+
+        private static void ApplyPatternStepToEvent(
+            ChartEventData targetEvent,
+            PatternDefinition patternDefinition,
+            PatternStepDefinition stepDefinition,
+            float targetBeat,
+            int targetLane,
+            int stepIndex,
+            float preservedNudgeMs,
+            AppliedPatternMetadata metadata)
+        {
+            targetEvent.Beat = targetBeat;
+            targetEvent.Lane = targetLane;
+            targetEvent.Kind = patternDefinition.CombatKind;
+            targetEvent.Phase = stepDefinition.Phase;
+            targetEvent.StepIndex = stepIndex;
+            targetEvent.ReadyCueType = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.ReadyCueType : ReadyCueType.None;
+            targetEvent.DirectionHint = stepDefinition.DirectionHint;
+            targetEvent.MovementResolveMode = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementResolveMode : MovementResolveMode.None;
+            targetEvent.MoveUnits = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MoveUnits : 0f;
+            targetEvent.TargetBandUnits = stepDefinition.TargetBandUnits;
+            targetEvent.MovementDirectionHint = stepDefinition.Phase == CombatEventPhase.Ready ? stepDefinition.MovementDirectionHint : MovementDirectionHint.None;
+            targetEvent.EntryBandUnits = patternDefinition.EntryBandUnits;
+            targetEvent.PlayerKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.PlayerKnockbackUnits : 0f;
+            targetEvent.MonsterKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.MonsterKnockbackUnits : 0f;
+            targetEvent.NudgeMs = preservedNudgeMs;
+            targetEvent.AppliedPatternInstanceId = metadata.InstanceId;
+            targetEvent.AppliedPatternAssetGuid = metadata.AssetGuid;
+            targetEvent.AppliedPatternId = metadata.PatternId ?? string.Empty;
+            targetEvent.AppliedPatternSignature = metadata.Signature ?? string.Empty;
+            targetEvent.AppliedPatternTimingBeat = metadata.TimingBeat;
+            targetEvent.AppliedPatternTimingStepIndex = metadata.TimingStepIndex;
+            targetEvent.AppliedPatternStepCount = metadata.StepCount;
+        }
+
+        private bool TryAutoSyncAppliedPatterns(out int syncedPatternGroupCount, out string errorMessage)
+        {
+            syncedPatternGroupCount = 0;
+            errorMessage = string.Empty;
+
+            if (currentChart == null || currentChart.Events == null || currentChart.Events.Count == 0)
+            {
+                return true;
+            }
+
+            Dictionary<string, AppliedPatternSyncGroup> groupsByInstanceId = new Dictionary<string, AppliedPatternSyncGroup>(StringComparer.Ordinal);
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null || string.IsNullOrWhiteSpace(eventData.AppliedPatternInstanceId))
+                {
+                    continue;
+                }
+
+                if (!groupsByInstanceId.TryGetValue(eventData.AppliedPatternInstanceId, out AppliedPatternSyncGroup group))
+                {
+                    group = new AppliedPatternSyncGroup(eventData.AppliedPatternInstanceId);
+                    groupsByInstanceId.Add(eventData.AppliedPatternInstanceId, group);
+                }
+
+                group.Events.Add(eventData);
+            }
+
+            if (groupsByInstanceId.Count == 0)
+            {
+                return true;
+            }
+
+            bool hasSyncedChanges = false;
+            bool undoRecorded = false;
+
+            foreach (AppliedPatternSyncGroup group in groupsByInstanceId.Values)
+            {
+                if (!TrySyncAppliedPatternGroup(group, ref undoRecorded, out bool groupChanged, out errorMessage))
+                {
+                    return false;
+                }
+
+                if (groupChanged)
+                {
+                    syncedPatternGroupCount++;
+                    hasSyncedChanges = true;
+                }
+            }
+
+            if (hasSyncedChanges)
+            {
+                SortEvents();
+                MarkChartDirty();
+            }
+
+            return true;
+        }
+
+        private bool TrySyncAppliedPatternGroup(
+            AppliedPatternSyncGroup group,
+            ref bool undoRecorded,
+            out bool groupChanged,
+            out string errorMessage)
+        {
+            groupChanged = false;
+            errorMessage = string.Empty;
+
+            if (group == null || group.Events.Count == 0)
+            {
+                return true;
+            }
+
+            ChartEventData referenceEvent = group.Events[0];
+            PatternDefinition patternDefinition = FindPatternDefinitionByLink(referenceEvent.AppliedPatternAssetGuid, referenceEvent.AppliedPatternId);
+            if (patternDefinition == null)
+            {
+                errorMessage =
+                    $"Linked pattern '{referenceEvent.AppliedPatternId}' for this chart event group could not be found. Reapply the pattern manually before saving.";
+                return false;
+            }
+
+            string currentPatternSignature = patternDefinition.BuildSyncSignature();
+            if (string.Equals(referenceEvent.AppliedPatternSignature, currentPatternSignature, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!TryBuildPatternSteps(patternDefinition, out List<PatternStepDefinition> orderedSteps, out int timingStepIndex, out string patternErrorMessage))
+            {
+                errorMessage = $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' is invalid: {patternErrorMessage}";
+                return false;
+            }
+
+            int storedStepCount = Mathf.Max(referenceEvent.AppliedPatternStepCount, 0);
+            if (storedStepCount <= 0)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' has no stored step count metadata. Reapply the pattern manually once, then save again.";
+                return false;
+            }
+
+            if (orderedSteps.Count != storedStepCount)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' changed step count from {storedStepCount} to {orderedSteps.Count}. Reapply or manually update the chart before saving.";
+                return false;
+            }
+
+            Dictionary<int, ChartEventData> eventsByStepIndex = new Dictionary<int, ChartEventData>();
+            for (int i = 0; i < group.Events.Count; i++)
+            {
+                ChartEventData eventData = group.Events[i];
+                if (eventData == null)
+                {
+                    continue;
+                }
+
+                if (eventData.StepIndex < 0 || eventData.StepIndex >= storedStepCount)
+                {
+                    errorMessage =
+                        $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' has an out-of-range chart step index ({eventData.StepIndex}). Fix the chart manually before saving.";
+                    return false;
+                }
+
+                if (eventsByStepIndex.ContainsKey(eventData.StepIndex))
+                {
+                    errorMessage =
+                        $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' has duplicate chart step indices. Fix the chart manually before saving.";
+                    return false;
+                }
+
+                eventsByStepIndex.Add(eventData.StepIndex, eventData);
+            }
+
+            if (eventsByStepIndex.Count != storedStepCount)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' is missing one or more chart steps. Reapply or manually update the chart before saving.";
+                return false;
+            }
+
+            if (referenceEvent.AppliedPatternTimingStepIndex < 0 || referenceEvent.AppliedPatternTimingStepIndex >= storedStepCount)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' has an invalid stored timing step index. Reapply the pattern manually before saving.";
+                return false;
+            }
+
+            if (timingStepIndex != referenceEvent.AppliedPatternTimingStepIndex)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' changed which step is the Timing anchor. Reapply or manually update the chart before saving.";
+                return false;
+            }
+
+            if (!eventsByStepIndex.TryGetValue(referenceEvent.AppliedPatternTimingStepIndex, out ChartEventData timingEvent))
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' is missing its Timing step in the chart. Reapply or manually update the chart before saving.";
+                return false;
+            }
+
+            float timingBeat = timingEvent.Beat;
+            if (timingBeat < 0f)
+            {
+                errorMessage =
+                    $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' resolved to a negative timing beat. Fix the chart manually before saving.";
+                return false;
+            }
+
+            if (!undoRecorded)
+            {
+                RecordChartChange("Auto Sync Applied Patterns");
+                undoRecorded = true;
+            }
+
+            string assetPath = AssetDatabase.GetAssetPath(patternDefinition);
+            string assetGuid = string.IsNullOrWhiteSpace(assetPath)
+                ? referenceEvent.AppliedPatternAssetGuid
+                : AssetDatabase.AssetPathToGUID(assetPath);
+            AppliedPatternMetadata metadata = new AppliedPatternMetadata(
+                group.InstanceId,
+                assetGuid,
+                patternDefinition.PatternId,
+                currentPatternSignature,
+                timingBeat,
+                timingStepIndex,
+                orderedSteps.Count);
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                PatternStepDefinition stepDefinition = orderedSteps[i];
+                ChartEventData targetEvent = eventsByStepIndex[i];
+                float targetBeat = targetEvent.Beat;
+                int targetLane = targetEvent.Lane;
+                if (targetBeat < 0f)
+                {
+                    errorMessage =
+                        $"Linked pattern '{GetPatternDisplayLabel(patternDefinition)}' has step {i} placed before beat 0 in the chart. Fix the chart manually before saving.";
+                    return false;
+                }
+
+                ApplyPatternStepToEvent(
+                    targetEvent,
+                    patternDefinition,
+                    stepDefinition,
+                    targetBeat,
+                    targetLane,
+                    i,
+                    targetEvent.NudgeMs,
+                    metadata);
+            }
+
+            groupChanged = true;
+            return true;
+        }
+
+        private bool TryFindBlockingForeignEvent(
+            float beat,
+            int lane,
+            List<ChartEventData> ignoredGroupEvents,
+            out ChartEventData blockingEvent)
+        {
+            blockingEvent = null;
+            if (currentChart == null || currentChart.Events == null)
+            {
+                return false;
+            }
+
+            int targetSlotIndex = GetSlotIndex(beat);
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null || ignoredGroupEvents.Contains(eventData))
+                {
+                    continue;
+                }
+
+                if (eventData.Lane != lane || GetSlotIndex(eventData.Beat) != targetSlotIndex)
+                {
+                    continue;
+                }
+
+                if (eventData.Kind == CombatEventKind.None)
+                {
+                    continue;
+                }
+
+                blockingEvent = eventData;
+                return true;
+            }
+
+            return false;
+        }
+
+        private ChartEventData FindReusableNoneMarker(float beat, int lane, List<ChartEventData> ignoredGroupEvents)
+        {
+            if (currentChart == null || currentChart.Events == null)
+            {
+                return null;
+            }
+
+            int targetSlotIndex = GetSlotIndex(beat);
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null || ignoredGroupEvents.Contains(eventData))
+                {
+                    continue;
+                }
+
+                if (eventData.Lane == lane &&
+                    GetSlotIndex(eventData.Beat) == targetSlotIndex &&
+                    eventData.Kind == CombatEventKind.None)
+                {
+                    return eventData;
+                }
+            }
+
+            return null;
+        }
+
+        private PatternDefinition FindPatternDefinitionByLink(string assetGuid, string patternId)
+        {
+            if (!string.IsNullOrWhiteSpace(assetGuid))
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
+                if (!string.IsNullOrWhiteSpace(assetPath))
+                {
+                    PatternDefinition patternDefinition = AssetDatabase.LoadAssetAtPath<PatternDefinition>(assetPath);
+                    if (patternDefinition != null)
+                    {
+                        return patternDefinition;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(patternId))
+            {
+                return null;
+            }
+
+            string[] guids = AssetDatabase.FindAssets("t:PatternDefinition");
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guids[i]);
+                PatternDefinition patternDefinition = AssetDatabase.LoadAssetAtPath<PatternDefinition>(assetPath);
+                if (patternDefinition != null &&
+                    string.Equals(patternDefinition.PatternId, patternId, StringComparison.Ordinal))
+                {
+                    return patternDefinition;
+                }
+            }
+
+            return null;
+        }
+
+        private static void ClearAppliedPatternLink(ChartEventData eventData)
+        {
+            if (eventData == null)
+            {
+                return;
+            }
+
+            eventData.AppliedPatternInstanceId = string.Empty;
+            eventData.AppliedPatternAssetGuid = string.Empty;
+            eventData.AppliedPatternId = string.Empty;
+            eventData.AppliedPatternSignature = string.Empty;
+            eventData.AppliedPatternTimingBeat = 0f;
+            eventData.AppliedPatternTimingStepIndex = -1;
+            eventData.AppliedPatternStepCount = 0;
         }
 
         private void MarkChartDirty()
