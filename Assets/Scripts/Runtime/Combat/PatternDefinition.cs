@@ -13,6 +13,13 @@ namespace KalBeat.Combat
         [SerializeField] private string displayName = "Pattern 1";
         [SerializeField] private CombatEventKind combatKind = CombatEventKind.MeleeThreatDodgeOnly;
         [SerializeField] private float entryBandUnits = 4f;
+        [SerializeField] private int rangedCueCount = 8;
+        [SerializeField] private int rangedAnchorCount = 8;
+        [SerializeField] private float rangedCueIntervalBeats = 0.5f;
+        [SerializeField] private float rangedResponseOffsetBeats = 4f;
+        [SerializeField] private float rangedDodgeMoveUnits = 4f;
+        [SerializeField] private float rangedResponseBandUnits = 4f;
+        [SerializeField] private bool autoMovePlayerToResponseBand = true;
         [SerializeField] private List<PatternStepDefinition> steps = new List<PatternStepDefinition>();
 
         public string PatternId
@@ -41,11 +48,60 @@ namespace KalBeat.Combat
 
         public List<PatternStepDefinition> Steps => steps;
 
+        public int RangedCueCount
+        {
+            get => rangedCueCount;
+            set => rangedCueCount = value;
+        }
+
+        public int RangedAnchorCount
+        {
+            get => rangedAnchorCount;
+            set => rangedAnchorCount = value;
+        }
+
+        public float RangedCueIntervalBeats
+        {
+            get => rangedCueIntervalBeats;
+            set => rangedCueIntervalBeats = value;
+        }
+
+        public float RangedResponseOffsetBeats
+        {
+            get => rangedResponseOffsetBeats;
+            set => rangedResponseOffsetBeats = value;
+        }
+
+        public float RangedDodgeMoveUnits
+        {
+            get => rangedDodgeMoveUnits;
+            set => rangedDodgeMoveUnits = value;
+        }
+
+        public float RangedResponseBandUnits
+        {
+            get => rangedResponseBandUnits;
+            set => rangedResponseBandUnits = value;
+        }
+
+        public bool AutoMovePlayerToResponseBand
+        {
+            get => autoMovePlayerToResponseBand;
+            set => autoMovePlayerToResponseBand = value;
+        }
+
         public string BuildSyncSignature()
         {
             StringBuilder builder = new StringBuilder(256);
             builder.Append((int)combatKind).Append('|')
-                .Append(entryBandUnits.ToString("R")).Append('|');
+                .Append(entryBandUnits.ToString("R")).Append('|')
+                .Append(rangedCueCount).Append('|')
+                .Append(rangedAnchorCount).Append('|')
+                .Append(rangedCueIntervalBeats.ToString("R")).Append('|')
+                .Append(rangedResponseOffsetBeats.ToString("R")).Append('|')
+                .Append(rangedDodgeMoveUnits.ToString("R")).Append('|')
+                .Append(rangedResponseBandUnits.ToString("R")).Append('|')
+                .Append(autoMovePlayerToResponseBand).Append('|');
 
             List<PatternStepDefinition> orderedSteps = new List<PatternStepDefinition>();
             if (steps != null)
@@ -85,6 +141,12 @@ namespace KalBeat.Combat
             steps ??= new List<PatternStepDefinition>();
             steps.RemoveAll(step => step == null);
             entryBandUnits = Mathf.Max(0f, entryBandUnits);
+            rangedCueCount = Mathf.Clamp(rangedCueCount, 1, 32);
+            rangedAnchorCount = Mathf.Clamp(rangedAnchorCount, 1, 32);
+            rangedCueIntervalBeats = Mathf.Max(0.001f, rangedCueIntervalBeats);
+            rangedResponseOffsetBeats = Mathf.Max(0.001f, rangedResponseOffsetBeats);
+            rangedDodgeMoveUnits = Mathf.Max(0f, rangedDodgeMoveUnits);
+            rangedResponseBandUnits = Mathf.Max(0.001f, rangedResponseBandUnits);
 
             for (int i = 0; i < steps.Count; i++)
             {

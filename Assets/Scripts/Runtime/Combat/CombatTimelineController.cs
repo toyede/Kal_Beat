@@ -404,10 +404,15 @@ namespace KalBeat.Combat
 
         private static bool ShouldStartPlayerStep(ResolvedCombatStep resolvedStep)
         {
-            return resolvedStep != null &&
-                   resolvedStep.Kind == CombatEventKind.PlayerDashAttack &&
-                   resolvedStep.Phase == CombatEventPhase.Timing &&
-                   resolvedStep.PlayerDurationSec > 0f;
+            if (resolvedStep == null || resolvedStep.PlayerDurationSec <= 0f)
+            {
+                return false;
+            }
+
+            return (resolvedStep.Kind == CombatEventKind.PlayerDashAttack &&
+                    resolvedStep.Phase == CombatEventPhase.Timing) ||
+                   (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly &&
+                    resolvedStep.Phase == CombatEventPhase.Ready);
         }
 
         private static int CompareResolvedMonsterStarts(ResolvedCombatStep left, ResolvedCombatStep right)

@@ -23,6 +23,11 @@ namespace KalBeat.Charting.Editor
         private const string MetronomeEventSearchName = "metronome";
         private const string EventPreviewEventSearchName = "finger_snap";
         private const float PreviewTriggerEpsilon = 0.0001f;
+        private const int DefaultRangedPhraseCueCount = 8;
+        private const int DefaultRangedAnchorCount = 8;
+        private const float DefaultRangedPhraseResponseOffsetBeats = 4f;
+        private const float DefaultRangedPhraseCueIntervalBeats = 0.5f;
+        private const float DefaultRangedEntryBandUnits = 4f;
 
         private static readonly Color BackgroundColor = new Color(0.13f, 0.13f, 0.14f, 1f);
         private static readonly Color HeaderColor = new Color(0.17f, 0.17f, 0.18f, 1f);
@@ -57,6 +62,7 @@ namespace KalBeat.Charting.Editor
         private string eventPreviewEventPath = string.Empty;
         private TextAsset jsonImportAsset;
         private int selectedPatternPopupIndex;
+        private int selectedRangedPatternPopupIndex;
         private bool metronomeEnabled = true;
         private bool eventPreviewEnabled = true;
         private bool metaPanelExpanded = true;
@@ -520,6 +526,40 @@ namespace KalBeat.Charting.Editor
             DrawAddButton("Add Ranged Dodge", CombatEventKind.RangedThreatDodgeOnly, allowedPaletteKinds);
 
             GUILayout.Space(8f);
+            GUILayout.Label("Ranged Phrase", EditorStyles.boldLabel);
+            PatternDefinition[] rangedPatternDefinitions = GetSupportedPatterns(
+                selectedLaneMonsterDefinition,
+                CombatEventKind.RangedThreatDodgeOnly);
+            if (rangedPatternDefinitions.Length > 0)
+            {
+                selectedRangedPatternPopupIndex = Mathf.Clamp(
+                    selectedRangedPatternPopupIndex,
+                    0,
+                    rangedPatternDefinitions.Length - 1);
+                selectedRangedPatternPopupIndex = EditorGUILayout.Popup(
+                    "Ranged Pattern",
+                    selectedRangedPatternPopupIndex,
+                    BuildPatternPopupOptions(rangedPatternDefinitions));
+                PatternDefinition selectedRangedPatternDefinition = rangedPatternDefinitions[selectedRangedPatternPopupIndex];
+                EditorGUILayout.LabelField(
+                    "Rule",
+                    $"Move {selectedRangedPatternDefinition.RangedDodgeMoveUnits:0.###}u / Band {selectedRangedPatternDefinition.RangedResponseBandUnits:0.###}u");
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("No ranged dodge pattern is linked to this lane monster.", MessageType.Info);
+            }
+
+            using (new EditorGUI.DisabledScope(!ContainsCombatEventKind(allowedPaletteKinds, CombatEventKind.RangedThreatDodgeOnly) ||
+                                               rangedPatternDefinitions.Length == 0))
+            {
+                if (GUILayout.Button("Generate 1-Bar Dodge Call", GUILayout.Height(26f)))
+                {
+                    GenerateRangedDodgePhraseAtCursor(rangedPatternDefinitions[selectedRangedPatternPopupIndex]);
+                }
+            }
+
+            GUILayout.Space(8f);
 
             using (new EditorGUI.DisabledScope(selectedEvent == null))
             {
@@ -722,6 +762,11 @@ namespace KalBeat.Charting.Editor
                     EditorGUILayout.LabelField("Ready Cue", "Mark");
                     nextReadyCueType = ReadyCueType.None;
                 }
+                else if (nextKind == CombatEventKind.RangedThreatDodgeOnly)
+                {
+                    EditorGUILayout.LabelField("Ready Cue", "Magic Circle Call");
+                    nextReadyCueType = ReadyCueType.None;
+                }
                 else
                 {
                     ReadyCueType[] readyCueOptions = GetAllowedReadyCueTypes(laneMonsterDefinition);
@@ -742,15 +787,34 @@ namespace KalBeat.Charting.Editor
                 EditorGUILayout.HelpBox("Left/Right is always interpreted from the player viewpoint.", MessageType.Info);
             }
             float nextNudgeMs = EditorGUILayout.FloatField("Nudge (ms)", selectedEvent.NudgeMs);
+            string nextRangedPhraseId = selectedEvent.RangedPhraseId;
+            int nextRangedCueIndex = selectedEvent.RangedCueIndex;
+            int nextRangedAnchorIndex = selectedEvent.RangedAnchorIndex;
+
+            if (nextKind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                GUILayout.Space(6f);
+                GUILayout.Label("Ranged Call/Response", EditorStyles.boldLabel);
+                nextRangedPhraseId = EditorGUILayout.TextField("Phrase Id", selectedEvent.RangedPhraseId);
+                nextRangedCueIndex = EditorGUILayout.IntField("Cue Index", selectedEvent.RangedCueIndex);
+                nextRangedAnchorIndex = EditorGUILayout.IntField("Anchor Index", selectedEvent.RangedAnchorIndex);
+                EditorGUILayout.HelpBox("Ready and Timing events are paired by Phrase Id + Cue Index. Anchor Index selects the monster ranged anchor.", MessageType.Info);
+            }
 
             if (EditorGUI.EndChangeCheck())
             {
-                bool shouldClearPatternLink =
-                    nextKind != selectedEvent.Kind ||
-                    nextPhase != selectedEvent.Phase ||
-                    nextStepIndex != selectedEvent.StepIndex ||
-                    (nextPhase == CombatEventPhase.Ready && nextReadyCueType != selectedEvent.ReadyCueType) ||
-                    nextDirectionHint != selectedEvent.DirectionHint;
+                bool isRangedDodgeEdit = selectedEvent.Kind == CombatEventKind.RangedThreatDodgeOnly &&
+                                         nextKind == CombatEventKind.RangedThreatDodgeOnly;
+                bool shouldClearPatternLink = isRangedDodgeEdit
+                    ? nextLane != selectedEvent.Lane
+                    : nextKind != selectedEvent.Kind ||
+                      nextPhase != selectedEvent.Phase ||
+                      nextStepIndex != selectedEvent.StepIndex ||
+                      (nextPhase == CombatEventPhase.Ready && nextReadyCueType != selectedEvent.ReadyCueType) ||
+                      nextDirectionHint != selectedEvent.DirectionHint ||
+                      nextRangedPhraseId != selectedEvent.RangedPhraseId ||
+                      nextRangedCueIndex != selectedEvent.RangedCueIndex ||
+                      nextRangedAnchorIndex != selectedEvent.RangedAnchorIndex;
 
                 RecordChartChange("Edit Chart Event");
                 selectedEvent.Beat = snapEnabled ? QuantizeBeat(nextBeat) : Mathf.Max(0f, nextBeat);
@@ -764,6 +828,16 @@ namespace KalBeat.Charting.Editor
                         ? nextDirectionHint
                         : PlayerRelativeDirection.None;
                 selectedEvent.NudgeMs = nextNudgeMs;
+                if (selectedEvent.Kind == CombatEventKind.RangedThreatDodgeOnly)
+                {
+                    selectedEvent.RangedPhraseId = nextRangedPhraseId ?? string.Empty;
+                    selectedEvent.RangedCueIndex = Mathf.Max(-1, nextRangedCueIndex);
+                    selectedEvent.RangedAnchorIndex = Mathf.Max(-1, nextRangedAnchorIndex);
+                }
+                else
+                {
+                    ClearRangedMetadata(selectedEvent);
+                }
 
                 if (shouldClearPatternLink)
                 {
@@ -837,6 +911,12 @@ namespace KalBeat.Charting.Editor
             EditorGUILayout.LabelField("Lane Monster", GetMonsterDisplayLabel(monsterDefinition));
             EditorGUILayout.LabelField("Combat Kind", selectedPatternDefinition.CombatKind.ToString());
             EditorGUILayout.HelpBox(BuildPatternDescription(selectedPatternDefinition), MessageType.None);
+
+            if (selectedPatternDefinition.CombatKind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                EditorGUILayout.HelpBox("Ranged dodge patterns are rule presets. Use the Ranged Phrase generator instead of applying this as fixed steps.", MessageType.Info);
+                return;
+            }
 
             if (GUILayout.Button("Apply Pattern To Selected Timing"))
             {
@@ -1032,6 +1112,150 @@ namespace KalBeat.Charting.Editor
             MarkChartDirty();
         }
 
+        private void GenerateRangedDodgePhraseAtCursor(PatternDefinition patternDefinition)
+        {
+            if (currentChart == null)
+            {
+                return;
+            }
+
+            if (patternDefinition == null || patternDefinition.CombatKind != CombatEventKind.RangedThreatDodgeOnly)
+            {
+                EditorUtility.DisplayDialog("Ranged Phrase Failed", "Select a ranged dodge pattern first.", "OK");
+                return;
+            }
+
+            int targetLane = Mathf.Clamp(selectedLane, 0, Mathf.Max(0, currentChart.Meta.LaneCount - 1));
+            MonsterDefinition laneMonsterDefinition = GetMonsterDefinitionForLane(targetLane);
+            CombatEventKind[] allowedEventKinds = GetAllowedCombatEventKinds(laneMonsterDefinition);
+            if (!ContainsCombatEventKind(allowedEventKinds, CombatEventKind.RangedThreatDodgeOnly))
+            {
+                EditorUtility.DisplayDialog("Ranged Phrase Failed", "Bind a monster that supports ranged dodge editing to this lane first.", "OK");
+                return;
+            }
+
+            int cueCount = Mathf.Clamp(patternDefinition.RangedCueCount, 1, 32);
+            int anchorCount = Mathf.Clamp(patternDefinition.RangedAnchorCount, 1, 32);
+            float cueIntervalBeats = Mathf.Max(0.001f, patternDefinition.RangedCueIntervalBeats);
+            float responseOffsetBeats = Mathf.Max(0.001f, patternDefinition.RangedResponseOffsetBeats);
+            float startBeat = snapEnabled ? QuantizeBeat(cursorBeat) : Mathf.Max(0f, cursorBeat);
+            for (int i = 0; i < cueCount; i++)
+            {
+                float callBeat = startBeat + i * cueIntervalBeats;
+                float responseBeat = callBeat + responseOffsetBeats;
+                if (HasBlockingEventAtSlot(callBeat, targetLane) || HasBlockingEventAtSlot(responseBeat, targetLane))
+                {
+                    EditorUtility.DisplayDialog(
+                        "Ranged Phrase Failed",
+                        $"A real event already exists in the generated phrase area near beat {callBeat:0.###}. Remove it or move the cursor.",
+                        "OK");
+                    return;
+                }
+            }
+
+            RecordChartChange("Generate Ranged Dodge Phrase");
+            string phraseId = Guid.NewGuid().ToString("N");
+            ChartEventData firstTimingEvent = null;
+            AppliedPatternMetadata appliedPatternMetadata = BuildRangedAppliedPatternMetadata(
+                patternDefinition,
+                startBeat + responseOffsetBeats,
+                cueCount * 2);
+
+            for (int i = 0; i < cueCount; i++)
+            {
+                float callBeat = startBeat + i * cueIntervalBeats;
+                float responseBeat = callBeat + responseOffsetBeats;
+                int anchorIndex = i % anchorCount;
+
+                ChartEventData callEvent = FindOrCreateEventInSlot(callBeat, targetLane);
+                ApplyRangedDodgeEvent(
+                    callEvent,
+                    appliedPatternMetadata,
+                    phraseId,
+                    i,
+                    anchorIndex,
+                    callBeat,
+                    targetLane,
+                    i,
+                    CombatEventPhase.Ready,
+                    PlayerRelativeDirection.None);
+
+                ChartEventData timingEvent = FindOrCreateEventInSlot(responseBeat, targetLane);
+                ApplyRangedDodgeEvent(
+                    timingEvent,
+                    appliedPatternMetadata,
+                    phraseId,
+                    i,
+                    anchorIndex,
+                    responseBeat,
+                    targetLane,
+                    cueCount + i,
+                    CombatEventPhase.Timing,
+                    i % 2 == 0 ? PlayerRelativeDirection.Left : PlayerRelativeDirection.Right);
+
+                firstTimingEvent ??= timingEvent;
+            }
+
+            selectedEvent = firstTimingEvent;
+            cursorBeat = firstTimingEvent != null ? firstTimingEvent.Beat : startBeat;
+            selectedLane = targetLane;
+            SortEvents();
+            MarkChartDirty();
+            ShowNotification(new GUIContent("Generated ranged dodge call/response phrase."));
+        }
+
+        private bool HasBlockingEventAtSlot(float beat, int lane)
+        {
+            ChartEventData eventData = FindEventInSlot(beat, lane);
+            return eventData != null && eventData.Kind != CombatEventKind.None;
+        }
+
+        private ChartEventData FindOrCreateEventInSlot(float beat, int lane)
+        {
+            ChartEventData eventData = FindEventInSlot(beat, lane);
+            if (eventData != null)
+            {
+                return eventData;
+            }
+
+            eventData = new ChartEventData();
+            currentChart.Events.Add(eventData);
+            return eventData;
+        }
+
+        private static void ApplyRangedDodgeEvent(
+            ChartEventData eventData,
+            AppliedPatternMetadata appliedPatternMetadata,
+            string phraseId,
+            int cueIndex,
+            int anchorIndex,
+            float beat,
+            int lane,
+            int stepIndex,
+            CombatEventPhase phase,
+            PlayerRelativeDirection directionHint)
+        {
+            eventData.Beat = beat;
+            eventData.Lane = lane;
+            eventData.Kind = CombatEventKind.RangedThreatDodgeOnly;
+            eventData.Phase = phase;
+            eventData.StepIndex = stepIndex;
+            eventData.ReadyCueType = ReadyCueType.None;
+            eventData.DirectionHint = phase == CombatEventPhase.Timing ? directionHint : PlayerRelativeDirection.None;
+            eventData.NudgeMs = 0f;
+            eventData.MovementResolveMode = MovementResolveMode.None;
+            eventData.MoveUnits = 0f;
+            eventData.TargetBandUnits = 0f;
+            eventData.MovementDirectionHint = MovementDirectionHint.None;
+            eventData.EntryBandUnits = DefaultRangedEntryBandUnits;
+            eventData.PlayerKnockbackUnits = 0f;
+            eventData.MonsterKnockbackUnits = 0f;
+            eventData.RangedPhraseId = phraseId ?? string.Empty;
+            eventData.RangedCueIndex = cueIndex;
+            eventData.RangedAnchorIndex = anchorIndex;
+            ApplyAppliedPatternMetadata(eventData, appliedPatternMetadata);
+        }
+
         private void ApplyEventKind(ChartEventData eventData, CombatEventKind eventKind)
         {
             eventData.Kind = eventKind;
@@ -1049,8 +1273,14 @@ namespace KalBeat.Charting.Editor
                 eventData.EntryBandUnits = 0f;
                 eventData.PlayerKnockbackUnits = 0f;
                 eventData.MonsterKnockbackUnits = 0f;
+                ClearRangedMetadata(eventData);
                 ClearAppliedPatternLink(eventData);
                 return;
+            }
+
+            if (eventKind != CombatEventKind.RangedThreatDodgeOnly)
+            {
+                ClearRangedMetadata(eventData);
             }
 
             if (eventKind != CombatEventKind.MeleeThreatCounterable &&
@@ -2068,6 +2298,27 @@ namespace KalBeat.Charting.Editor
             return supportedPatterns.ToArray();
         }
 
+        private static PatternDefinition[] GetSupportedPatterns(MonsterDefinition monsterDefinition, CombatEventKind combatEventKind)
+        {
+            PatternDefinition[] supportedPatterns = GetSupportedPatterns(monsterDefinition);
+            if (supportedPatterns.Length == 0)
+            {
+                return supportedPatterns;
+            }
+
+            List<PatternDefinition> filteredPatterns = new List<PatternDefinition>(supportedPatterns.Length);
+            for (int i = 0; i < supportedPatterns.Length; i++)
+            {
+                PatternDefinition patternDefinition = supportedPatterns[i];
+                if (patternDefinition != null && patternDefinition.CombatKind == combatEventKind)
+                {
+                    filteredPatterns.Add(patternDefinition);
+                }
+            }
+
+            return filteredPatterns.ToArray();
+        }
+
         private static string[] BuildLaneBindingPopupOptions(MonsterDefinition[] monsterDefinitions)
         {
             string[] options = new string[monsterDefinitions.Length + 1];
@@ -2319,11 +2570,21 @@ namespace KalBeat.Charting.Editor
             }
 
             return combatEventPhase == CombatEventPhase.Timing &&
-                   combatEventKind == CombatEventKind.MeleeThreatDodgeOnly;
+                   (combatEventKind == CombatEventKind.MeleeThreatDodgeOnly ||
+                    combatEventKind == CombatEventKind.RangedThreatDodgeOnly);
         }
 
         private static string BuildPatternDescription(PatternDefinition patternDefinition)
         {
+            if (patternDefinition != null && patternDefinition.CombatKind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                string autoMoveText = patternDefinition.AutoMovePlayerToResponseBand
+                    ? "auto response band"
+                    : "keep current band";
+                return
+                    $"Ranged Dodge [Cues {patternDefinition.RangedCueCount}, Interval {patternDefinition.RangedCueIntervalBeats:0.###} beat, Response +{patternDefinition.RangedResponseOffsetBeats:0.###} beat, Move {patternDefinition.RangedDodgeMoveUnits:0.###}u, Band {patternDefinition.RangedResponseBandUnits:0.###}u, {autoMoveText}]";
+            }
+
             if (patternDefinition == null || patternDefinition.Steps == null || patternDefinition.Steps.Count == 0)
             {
                 return "No pattern steps are defined.";
@@ -2576,6 +2837,26 @@ namespace KalBeat.Charting.Editor
                 stepCount);
         }
 
+        private AppliedPatternMetadata BuildRangedAppliedPatternMetadata(
+            PatternDefinition patternDefinition,
+            float firstTimingBeat,
+            int stepCount)
+        {
+            string assetPath = AssetDatabase.GetAssetPath(patternDefinition);
+            string assetGuid = string.IsNullOrWhiteSpace(assetPath)
+                ? string.Empty
+                : AssetDatabase.AssetPathToGUID(assetPath);
+
+            return new AppliedPatternMetadata(
+                string.Empty,
+                assetGuid,
+                patternDefinition != null ? patternDefinition.PatternId : string.Empty,
+                patternDefinition != null ? patternDefinition.BuildSyncSignature() : string.Empty,
+                firstTimingBeat,
+                Mathf.Max(0, stepCount / 2),
+                stepCount);
+        }
+
         private static void ApplyPatternStepToEvent(
             ChartEventData targetEvent,
             PatternDefinition patternDefinition,
@@ -2601,6 +2882,11 @@ namespace KalBeat.Charting.Editor
             targetEvent.PlayerKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.PlayerKnockbackUnits : 0f;
             targetEvent.MonsterKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.MonsterKnockbackUnits : 0f;
             targetEvent.NudgeMs = preservedNudgeMs;
+            ApplyAppliedPatternMetadata(targetEvent, metadata);
+        }
+
+        private static void ApplyAppliedPatternMetadata(ChartEventData targetEvent, AppliedPatternMetadata metadata)
+        {
             targetEvent.AppliedPatternInstanceId = metadata.InstanceId;
             targetEvent.AppliedPatternAssetGuid = metadata.AssetGuid;
             targetEvent.AppliedPatternId = metadata.PatternId ?? string.Empty;
@@ -2942,6 +3228,18 @@ namespace KalBeat.Charting.Editor
             eventData.AppliedPatternTimingBeat = 0f;
             eventData.AppliedPatternTimingStepIndex = -1;
             eventData.AppliedPatternStepCount = 0;
+        }
+
+        private static void ClearRangedMetadata(ChartEventData eventData)
+        {
+            if (eventData == null)
+            {
+                return;
+            }
+
+            eventData.RangedPhraseId = string.Empty;
+            eventData.RangedCueIndex = -1;
+            eventData.RangedAnchorIndex = -1;
         }
 
         private void MarkChartDirty()

@@ -36,6 +36,9 @@ namespace KalBeat.Charting
         [SerializeField] private float exitBandUnits;
         [SerializeField] private float playerKnockbackUnits;
         [SerializeField] private float monsterKnockbackUnits;
+        [SerializeField] private string rangedPhraseId = string.Empty;
+        [SerializeField] private int rangedCueIndex = -1;
+        [SerializeField] private int rangedAnchorIndex = -1;
 
         public string MonsterId
         {
@@ -209,6 +212,24 @@ namespace KalBeat.Charting
         {
             get => monsterKnockbackUnits;
             set => monsterKnockbackUnits = value;
+        }
+
+        public string RangedPhraseId
+        {
+            get => rangedPhraseId;
+            set => rangedPhraseId = value;
+        }
+
+        public int RangedCueIndex
+        {
+            get => rangedCueIndex;
+            set => rangedCueIndex = value;
+        }
+
+        public int RangedAnchorIndex
+        {
+            get => rangedAnchorIndex;
+            set => rangedAnchorIndex = value;
         }
     }
 }

@@ -55,6 +55,47 @@ namespace KalBeat.Combat
             return playerLocalPosition + (GetPlayerDirection(playerLocalPosition, monsterLocalPosition, directionHint) * units);
         }
 
+        public static Vector2 ResolvePlayerDirectionTargetOnBand(
+            Vector2 referencePlayerLocalPosition,
+            Vector2 referenceMonsterLocalPosition,
+            PlayerRelativeDirection directionHint,
+            float targetBandUnits,
+            float moveUnits)
+        {
+            float safeTargetBandUnits = Mathf.Max(0f, targetBandUnits);
+            if (safeTargetBandUnits <= 0.0001f)
+            {
+                return referenceMonsterLocalPosition;
+            }
+
+            Vector2 radialFromMonster = referencePlayerLocalPosition - referenceMonsterLocalPosition;
+            float startBandUnits = radialFromMonster.magnitude;
+            Vector2 radialDirection = startBandUnits > 0.0001f
+                ? radialFromMonster / startBandUnits
+                : -GetDuelForward(referencePlayerLocalPosition, referenceMonsterLocalPosition);
+
+            Vector2 playerRight = new Vector2(-radialDirection.y, radialDirection.x);
+            Vector2 sideDirection = directionHint == PlayerRelativeDirection.Left ? -playerRight : playerRight;
+            float safeMoveUnits = Mathf.Max(0f, moveUnits);
+            if (safeMoveUnits <= 0.0001f || startBandUnits <= 0.0001f)
+            {
+                return referenceMonsterLocalPosition + (radialDirection * safeTargetBandUnits);
+            }
+
+            float radialDistance = ((startBandUnits * startBandUnits) +
+                                    (safeTargetBandUnits * safeTargetBandUnits) -
+                                    (safeMoveUnits * safeMoveUnits)) /
+                                   (2f * startBandUnits);
+            radialDistance = Mathf.Clamp(radialDistance, -safeTargetBandUnits, safeTargetBandUnits);
+
+            float sideDistanceSquared = (safeTargetBandUnits * safeTargetBandUnits) -
+                                        (radialDistance * radialDistance);
+            float sideDistance = Mathf.Sqrt(Mathf.Max(0f, sideDistanceSquared));
+            return referenceMonsterLocalPosition +
+                   (radialDirection * radialDistance) +
+                   (sideDirection * sideDistance);
+        }
+
         public static Vector2 ResolveForwardToBand(
             Vector2 playerLocalPosition,
             Vector2 monsterLocalPosition,

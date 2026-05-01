@@ -106,6 +106,7 @@ namespace KalBeat.Combat
 
             AppendDurationEntries(builder, readyMoveDurationByUnits);
             AppendDurationEntries(builder, timingApproachDurationByUnits);
+            AppendSupportedPatternSignatures(builder, supportedPatterns);
             return Hash128.Compute(builder.ToString()).ToString();
         }
 
@@ -174,6 +175,30 @@ namespace KalBeat.Combat
 
                 builder.Append(entry.Units.ToString("R")).Append(':')
                     .Append(entry.DurationSec.ToString("R"))
+                    .Append('|');
+            }
+        }
+
+        private static void AppendSupportedPatternSignatures(StringBuilder builder, List<PatternDefinition> patterns)
+        {
+            if (patterns == null)
+            {
+                builder.Append("patterns:null|");
+                return;
+            }
+
+            for (int i = 0; i < patterns.Count; i++)
+            {
+                PatternDefinition patternDefinition = patterns[i];
+                if (patternDefinition == null)
+                {
+                    builder.Append("pattern:null|");
+                    continue;
+                }
+
+                builder.Append(patternDefinition.PatternId).Append(':')
+                    .Append((int)patternDefinition.CombatKind).Append(':')
+                    .Append(patternDefinition.BuildSyncSignature())
                     .Append('|');
             }
         }

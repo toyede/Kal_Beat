@@ -27,6 +27,12 @@ namespace KalBeat.Charting
         private const string ErrorCodePlayerDashReadyCueInvalid = "event.player_dash.ready_cue.invalid";
         private const string ErrorCodeCounterPlayerKnockbackInvalid = "event.counter.player_knockback.invalid";
         private const string ErrorCodeCounterMonsterKnockbackInvalid = "event.counter.monster_knockback.invalid";
+        private const string ErrorCodeRangedPhraseMissing = "event.ranged.phrase.missing";
+        private const string ErrorCodeRangedCueIndexInvalid = "event.ranged.cue_index.invalid";
+        private const string ErrorCodeRangedAnchorIndexInvalid = "event.ranged.anchor_index.invalid";
+        private const string ErrorCodeRangedReadyCueInvalid = "event.ranged.ready_cue.invalid";
+        private const string ErrorCodeRangedPairInvalid = "event.ranged.pair.invalid";
+        private const string ErrorCodeRangedPairAnchorMismatch = "event.ranged.pair.anchor_mismatch";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
         private const string WarningCodeEventKindNone = "event.kind.none";
         private const string WarningCodeReadyCueMissing = "event.ready_cue.missing";
@@ -93,6 +99,7 @@ namespace KalBeat.Charting
             int safeLaneCount = meta.LaneCount > 0 ? meta.LaneCount : 1;
             int safeMaxEventsPerSlot = meta.MaxEventsPerSlot > 0 ? meta.MaxEventsPerSlot : 1;
             var slotCounter = new Dictionary<int, int>();
+            var rangedPairs = new Dictionary<string, RangedPairValidationState>(StringComparer.Ordinal);
 
             for (int i = 0; i < events.Count; i++)
             {
@@ -135,7 +142,8 @@ namespace KalBeat.Charting
 
                 if (eventData.Phase == CombatEventPhase.Ready &&
                     eventData.ReadyCueType == ReadyCueType.None &&
-                    eventData.Kind != CombatEventKind.PlayerDashAttack)
+                    eventData.Kind != CombatEventKind.PlayerDashAttack &&
+                    eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
                 {
                     result.AddWarning(WarningCodeReadyCueMissing, "Ready phase event should set ReadyCueType.", i);
                 }
@@ -191,9 +199,21 @@ namespace KalBeat.Charting
                     }
                 }
 
+                if (eventData.Kind == CombatEventKind.RangedThreatDodgeOnly)
+                {
+                    ValidateRangedDodgeEvent(result, rangedPairs, eventData, i);
+                }
+
                 if (RequiresDirectionHint(eventData) && eventData.DirectionHint == PlayerRelativeDirection.None)
                 {
-                    result.AddWarning(WarningCodeDirectionMissing, "MeleeThreatDodgeOnly should set DirectionHint.", i);
+                    if (eventData.Kind == CombatEventKind.RangedThreatDodgeOnly)
+                    {
+                        result.AddError(WarningCodeDirectionMissing, "RangedThreatDodgeOnly Timing event must set DirectionHint.", i);
+                    }
+                    else
+                    {
+                        result.AddWarning(WarningCodeDirectionMissing, "MeleeThreatDodgeOnly should set DirectionHint.", i);
+                    }
                 }
 
                 if (float.IsNaN(eventData.NudgeMs) || float.IsInfinity(eventData.NudgeMs))
@@ -219,6 +239,17 @@ namespace KalBeat.Charting
                 }
             }
 
+            foreach (RangedPairValidationState pairState in rangedPairs.Values)
+            {
+                if (pairState.ReadyCount != 1 || pairState.TimingCount != 1)
+                {
+                    result.AddError(
+                        ErrorCodeRangedPairInvalid,
+                        "Each RangedThreatDodgeOnly cue must contain exactly one Ready call and one Timing response.",
+                        pairState.FirstEventIndex);
+                }
+            }
+
             return result;
         }
 
@@ -236,7 +267,77 @@ namespace KalBeat.Charting
             }
 
             return eventData.Phase == CombatEventPhase.Timing &&
-                   eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly;
+                   (eventData.Kind == CombatEventKind.MeleeThreatDodgeOnly ||
+                    eventData.Kind == CombatEventKind.RangedThreatDodgeOnly);
+        }
+
+        private static void ValidateRangedDodgeEvent(
+            ChartValidationResult result,
+            Dictionary<string, RangedPairValidationState> rangedPairs,
+            ChartEventData eventData,
+            int eventIndex)
+        {
+            if (string.IsNullOrWhiteSpace(eventData.RangedPhraseId))
+            {
+                result.AddError(ErrorCodeRangedPhraseMissing, "RangedThreatDodgeOnly event must set RangedPhraseId.", eventIndex);
+            }
+
+            if (eventData.RangedCueIndex < 0)
+            {
+                result.AddError(ErrorCodeRangedCueIndexInvalid, "RangedThreatDodgeOnly event must set RangedCueIndex greater than or equal to 0.", eventIndex);
+            }
+
+            if (eventData.RangedAnchorIndex < 0)
+            {
+                result.AddError(ErrorCodeRangedAnchorIndexInvalid, "RangedThreatDodgeOnly event must set RangedAnchorIndex greater than or equal to 0.", eventIndex);
+            }
+
+            if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType != ReadyCueType.None)
+            {
+                result.AddError(ErrorCodeRangedReadyCueInvalid, "RangedThreatDodgeOnly Ready event is treated as a magic circle call and must not set ReadyCueType.", eventIndex);
+            }
+
+            if (string.IsNullOrWhiteSpace(eventData.RangedPhraseId) || eventData.RangedCueIndex < 0)
+            {
+                return;
+            }
+
+            string key = $"{eventData.Lane}:{eventData.RangedPhraseId}:{eventData.RangedCueIndex}";
+            if (!rangedPairs.TryGetValue(key, out RangedPairValidationState pairState))
+            {
+                pairState = new RangedPairValidationState(eventIndex, eventData.RangedAnchorIndex);
+                rangedPairs.Add(key, pairState);
+            }
+            else if (pairState.AnchorIndex != eventData.RangedAnchorIndex)
+            {
+                result.AddError(
+                    ErrorCodeRangedPairAnchorMismatch,
+                    "RangedThreatDodgeOnly Ready and Timing events with the same phrase/cue must use the same RangedAnchorIndex.",
+                    eventIndex);
+            }
+
+            if (eventData.Phase == CombatEventPhase.Ready)
+            {
+                pairState.ReadyCount++;
+            }
+            else if (eventData.Phase == CombatEventPhase.Timing)
+            {
+                pairState.TimingCount++;
+            }
+        }
+
+        private sealed class RangedPairValidationState
+        {
+            public RangedPairValidationState(int firstEventIndex, int anchorIndex)
+            {
+                FirstEventIndex = firstEventIndex;
+                AnchorIndex = anchorIndex;
+            }
+
+            public int FirstEventIndex { get; }
+            public int AnchorIndex { get; }
+            public int ReadyCount { get; set; }
+            public int TimingCount { get; set; }
         }
     }
 }

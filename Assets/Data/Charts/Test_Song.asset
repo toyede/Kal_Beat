@@ -52,6 +52,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -74,6 +77,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -96,10 +102,13 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: b5bfa90adb154f7faad35b4918059ce9
     appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
     appliedPatternId: pattern_1
-    appliedPatternSignature: a8ef7618bebc66cb409d087275cada3b
+    appliedPatternSignature: 57f2e53acc524dce761edab250bcbdf4
     appliedPatternTimingBeat: 11
     appliedPatternTimingStepIndex: 2
     appliedPatternStepCount: 3
@@ -118,10 +127,13 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: b5bfa90adb154f7faad35b4918059ce9
     appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
     appliedPatternId: pattern_1
-    appliedPatternSignature: a8ef7618bebc66cb409d087275cada3b
+    appliedPatternSignature: 57f2e53acc524dce761edab250bcbdf4
     appliedPatternTimingBeat: 11
     appliedPatternTimingStepIndex: 2
     appliedPatternStepCount: 3
@@ -140,10 +152,13 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: b5bfa90adb154f7faad35b4918059ce9
     appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
     appliedPatternId: pattern_1
-    appliedPatternSignature: a8ef7618bebc66cb409d087275cada3b
+    appliedPatternSignature: 57f2e53acc524dce761edab250bcbdf4
     appliedPatternTimingBeat: 11
     appliedPatternTimingStepIndex: 2
     appliedPatternStepCount: 3
@@ -162,6 +177,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -184,6 +202,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -206,6 +227,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -228,6 +252,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -250,6 +277,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 3
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -272,6 +302,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -294,6 +327,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -316,6 +352,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 1
     monsterKnockbackUnits: 2
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -338,6 +377,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -360,6 +402,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -382,6 +427,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -404,6 +452,9 @@ MonoBehaviour:
     entryBandUnits: 4
     playerKnockbackUnits: 1
     monsterKnockbackUnits: 2
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
     appliedPatternInstanceId: 
     appliedPatternAssetGuid: 
     appliedPatternId: 
@@ -411,14 +462,414 @@ MonoBehaviour:
     appliedPatternTimingBeat: 0
     appliedPatternTimingStepIndex: -1
     appliedPatternStepCount: 0
+  - beat: 33
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 0
+    rangedAnchorIndex: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 33.5
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 1
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 1
+    rangedAnchorIndex: 1
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 34
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 2
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 2
+    rangedAnchorIndex: 2
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 34.5
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 3
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 3
+    rangedAnchorIndex: 3
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 35
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 4
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 4
+    rangedAnchorIndex: 4
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 35.5
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 5
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 5
+    rangedAnchorIndex: 5
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 36
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 6
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 6
+    rangedAnchorIndex: 6
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 36.5
+    lane: 0
+    kind: 6
+    phase: 0
+    stepIndex: 7
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 7
+    rangedAnchorIndex: 7
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 39
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 8
+    readyCueType: 0
+    directionHint: 1
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 0
+    rangedAnchorIndex: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 39.5
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 9
+    readyCueType: 0
+    directionHint: 2
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 1
+    rangedAnchorIndex: 1
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 40
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 10
+    readyCueType: 0
+    directionHint: 1
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 2
+    rangedAnchorIndex: 2
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 40.5
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 11
+    readyCueType: 0
+    directionHint: 2
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 3
+    rangedAnchorIndex: 3
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 41
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 12
+    readyCueType: 0
+    directionHint: 1
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 4
+    rangedAnchorIndex: 4
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 41.5
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 13
+    readyCueType: 0
+    directionHint: 2
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 5
+    rangedAnchorIndex: 5
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 42
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 14
+    readyCueType: 0
+    directionHint: 1
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 6
+    rangedAnchorIndex: 6
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
+  - beat: 42.5
+    lane: 0
+    kind: 6
+    phase: 1
+    stepIndex: 15
+    readyCueType: 0
+    directionHint: 2
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+    rangedCueIndex: 7
+    rangedAnchorIndex: 7
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: d3bfc952c43c9c945a4baff3453cfd2e
+    appliedPatternId: boar_ranged_dodge_beam_01
+    appliedPatternSignature: 35fad43fb0aff35803255978d87d56c5
+    appliedPatternTimingBeat: 39
+    appliedPatternTimingStepIndex: 8
+    appliedPatternStepCount: 16
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: 816a1eefb34719266e19a288c0c04d1b
+    sourceSignature: e0c7b31ad3290ae19e22a477257490bb
     isValid: 1
     invalidReason: 
     steps:
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 3
       lane: 0
       kind: 2
@@ -446,8 +897,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 5
       lane: 0
       kind: 2
@@ -475,8 +929,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 7
       lane: 0
       kind: 2
@@ -504,8 +961,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 9
       lane: 0
       kind: 2
@@ -533,8 +993,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 11
       lane: 0
       kind: 2
@@ -562,8 +1025,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 13
       lane: 0
       kind: 2
@@ -591,8 +1057,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 15
       lane: 0
       kind: 2
@@ -620,8 +1089,11 @@ MonoBehaviour:
       exitBandUnits: 3.9999998
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 17
       lane: 0
       kind: 2
@@ -649,8 +1121,11 @@ MonoBehaviour:
       exitBandUnits: 4.0000005
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 19
       lane: 0
       kind: 1
@@ -678,8 +1153,11 @@ MonoBehaviour:
       exitBandUnits: 4.0000005
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 21
       lane: 0
       kind: 1
@@ -707,8 +1185,11 @@ MonoBehaviour:
       exitBandUnits: 3.9999998
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 3
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 23
       lane: 0
       kind: 1
@@ -736,8 +1217,11 @@ MonoBehaviour:
       exitBandUnits: 3.9999998
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 25
       lane: 0
       kind: 1
@@ -765,8 +1249,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 27
       lane: 0
       kind: 1
@@ -794,8 +1281,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 1
       monsterKnockbackUnits: 2
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 28
       lane: 0
       kind: 3
@@ -823,8 +1313,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 28.5
       lane: 0
       kind: 3
@@ -852,8 +1345,11 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 30
       lane: 0
       kind: 3
@@ -881,8 +1377,11 @@ MonoBehaviour:
       exitBandUnits: 1
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
     - monsterId: boar
-      monsterDefinitionSignature: 3c21b47b119df6cc3457d8070d473b73
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
       sourceBeat: 30.5
       lane: 0
       kind: 3
@@ -910,3 +1409,518 @@ MonoBehaviour:
       exitBandUnits: 4
       playerKnockbackUnits: 1
       monsterKnockbackUnits: 2
+      rangedPhraseId: 
+      rangedCueIndex: -1
+      rangedAnchorIndex: -1
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 33
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 0
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 18.104
+      hitSec: 18.104
+      monsterDurationSec: 0
+      playerStartSec: 18.104
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 0
+      rangedAnchorIndex: 0
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 33.5
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 1
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 18.376728
+      hitSec: 18.376728
+      monsterDurationSec: 0
+      playerStartSec: 18.376728
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 1
+      rangedAnchorIndex: 1
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 34
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 2
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 18.649456
+      hitSec: 18.649456
+      monsterDurationSec: 0
+      playerStartSec: 18.649456
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 2
+      rangedAnchorIndex: 2
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 34.5
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 3
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 18.922182
+      hitSec: 18.922182
+      monsterDurationSec: 0
+      playerStartSec: 18.922182
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 3
+      rangedAnchorIndex: 3
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 35
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 4
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 19.19491
+      hitSec: 19.19491
+      monsterDurationSec: 0
+      playerStartSec: 19.19491
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 4
+      rangedAnchorIndex: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 35.5
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 5
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 19.467636
+      hitSec: 19.467636
+      monsterDurationSec: 0
+      playerStartSec: 19.467636
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 5
+      rangedAnchorIndex: 5
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 36
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 6
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 19.740364
+      hitSec: 19.740364
+      monsterDurationSec: 0
+      playerStartSec: 19.740364
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 6
+      rangedAnchorIndex: 6
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 36.5
+      lane: 0
+      kind: 6
+      phase: 0
+      stepIndex: 7
+      readyCueType: 0
+      playerDirectionHint: 0
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 20.013092
+      hitSec: 20.013092
+      monsterDurationSec: 0
+      playerStartSec: 20.013092
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 7
+      rangedAnchorIndex: 7
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 39
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 8
+      readyCueType: 0
+      playerDirectionHint: 1
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 21.376728
+      hitSec: 21.376728
+      monsterDurationSec: 0
+      playerStartSec: 21.376728
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      endPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -3.6592531, y: -6.11457}
+      lockedPlayerLocalPos: {x: -3.6592531, y: -6.11457}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 0
+      rangedAnchorIndex: 0
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 39.5
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 9
+      readyCueType: 0
+      playerDirectionHint: 2
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 21.649456
+      hitSec: 21.649456
+      monsterDurationSec: 0
+      playerStartSec: 21.649456
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      endPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -5.034253, y: -4.6622014}
+      lockedPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4.0000005
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 1
+      rangedAnchorIndex: 1
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 40
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 10
+      readyCueType: 0
+      playerDirectionHint: 1
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 21.922182
+      hitSec: 21.922182
+      monsterDurationSec: 0
+      playerStartSec: 21.922182
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      endPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -1.7530029, y: -6.719724}
+      lockedPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4.0000005
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 2
+      rangedAnchorIndex: 2
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 40.5
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 11
+      readyCueType: 0
+      playerDirectionHint: 2
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 22.19491
+      hitSec: 22.19491
+      monsterDurationSec: 0
+      playerStartSec: 22.19491
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      endPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -5.034253, y: -4.6622014}
+      lockedPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4.0000005
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 3
+      rangedAnchorIndex: 3
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 41
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 12
+      readyCueType: 0
+      playerDirectionHint: 1
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 22.467636
+      hitSec: 22.467636
+      monsterDurationSec: 0
+      playerStartSec: 22.467636
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      endPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -1.7530029, y: -6.719724}
+      lockedPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4.0000005
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 4
+      rangedAnchorIndex: 4
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 41.5
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 13
+      readyCueType: 0
+      playerDirectionHint: 2
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 22.740364
+      hitSec: 22.740364
+      monsterDurationSec: 0
+      playerStartSec: 22.740364
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      endPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -5.034253, y: -4.6622014}
+      lockedPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4.0000005
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 5
+      rangedAnchorIndex: 5
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 42
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 14
+      readyCueType: 0
+      playerDirectionHint: 1
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 23.013092
+      hitSec: 23.013092
+      monsterDurationSec: 0
+      playerStartSec: 23.013092
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      endPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -1.7530029, y: -6.719724}
+      lockedPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4.0000005
+      exitBandUnits: 4
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 6
+      rangedAnchorIndex: 6
+    - monsterId: boar
+      monsterDefinitionSignature: 3af5e1ec26a84e884c6dc84ac2b25851
+      sourceBeat: 42.5
+      lane: 0
+      kind: 6
+      phase: 1
+      stepIndex: 15
+      readyCueType: 0
+      playerDirectionHint: 2
+      movementResolveMode: 0
+      moveUnits: 0
+      targetBandUnits: 0
+      movementDirectionHint: 0
+      monsterStartSec: 23.285818
+      hitSec: 23.285818
+      monsterDurationSec: 0
+      playerStartSec: 23.285818
+      playerDurationSec: 0
+      startPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      endPlayerLocalPos: {x: -1.7530029, y: -6.719724}
+      startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
+      playerApproachLocalPos: {x: -5.034253, y: -4.6622014}
+      lockedPlayerLocalPos: {x: -5.034253, y: -4.6622014}
+      monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
+      entryBandUnits: 4
+      exitBandUnits: 4.0000005
+      playerKnockbackUnits: 0
+      monsterKnockbackUnits: 0
+      rangedPhraseId: 3d13c673ea1148cd9f03de73de05dc5d
+      rangedCueIndex: 7
+      rangedAnchorIndex: 7

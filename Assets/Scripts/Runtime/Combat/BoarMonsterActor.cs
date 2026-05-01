@@ -9,6 +9,12 @@ namespace KalBeat.Combat
         [SerializeField] private Color dashColor = new Color(0.95f, 0.3f, 0.3f, 1f);
         [SerializeField] private float dashUnits = 4f;
         [SerializeField] private float dashDurationSec = 0.18f;
+        [SerializeField] private RangedAttackVisualView rangedAttackVisualView;
+
+        public void Awake()
+        {
+            TryAssignRangedAttackVisualView();
+        }
 
         protected override void HandleReady(ChartEventData eventData)
         {
@@ -56,8 +62,20 @@ namespace KalBeat.Combat
             }
 
             if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
-                resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
+                resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable &&
+                resolvedStep.Kind != CombatEventKind.RangedThreatDodgeOnly)
             {
+                return;
+            }
+
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                if (resolvedStep.Phase == CombatEventPhase.Ready)
+                {
+                    TryAssignRangedAttackVisualView();
+                    rangedAttackVisualView?.ShowCallCircle(resolvedStep);
+                }
+
                 return;
             }
 
@@ -81,6 +99,18 @@ namespace KalBeat.Combat
         {
             if (resolvedStep.Kind == CombatEventKind.PlayerDashAttack)
             {
+                return;
+            }
+
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                TryAssignRangedAttackVisualView();
+                if (DuelRoot != null)
+                {
+                    Vector3 lockedTargetWorldPosition = DuelRoot.ConvertDuelLocalToWorld(resolvedStep.LockedPlayerLocalPos);
+                    rangedAttackVisualView?.FireAndConsume(resolvedStep, lockedTargetWorldPosition);
+                }
+
                 return;
             }
 
@@ -122,13 +152,31 @@ namespace KalBeat.Combat
         public override void ResetCombatState()
         {
             base.ResetCombatState();
+            rangedAttackVisualView?.Clear();
             RestoreDefaultColor();
+        }
+
+        private void TryAssignRangedAttackVisualView()
+        {
+            if (rangedAttackVisualView == null)
+            {
+                rangedAttackVisualView = GetComponent<RangedAttackVisualView>();
+            }
+
+            if (rangedAttackVisualView == null)
+            {
+                rangedAttackVisualView = gameObject.AddComponent<RangedAttackVisualView>();
+            }
         }
 
         private void OnValidate()
         {
             dashUnits = Mathf.Max(0f, dashUnits);
             dashDurationSec = Mathf.Max(0.01f, dashDurationSec);
+            if (rangedAttackVisualView == null)
+            {
+                rangedAttackVisualView = GetComponent<RangedAttackVisualView>();
+            }
         }
     }
 }
