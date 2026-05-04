@@ -143,6 +143,7 @@ namespace KalBeat.Charting
                 if (eventData.Phase == CombatEventPhase.Ready &&
                     eventData.ReadyCueType == ReadyCueType.None &&
                     eventData.Kind != CombatEventKind.PlayerDashAttack &&
+                    eventData.Kind != CombatEventKind.RangedThreatCounterable &&
                     eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
                 {
                     result.AddWarning(WarningCodeReadyCueMissing, "Ready phase event should set ReadyCueType.", i);
@@ -199,9 +200,9 @@ namespace KalBeat.Charting
                     }
                 }
 
-                if (eventData.Kind == CombatEventKind.RangedThreatDodgeOnly)
+                if (IsRangedPhraseKind(eventData.Kind))
                 {
-                    ValidateRangedDodgeEvent(result, rangedPairs, eventData, i);
+                    ValidateRangedPhraseEvent(result, rangedPairs, eventData, i);
                 }
 
                 if (RequiresDirectionHint(eventData) && eventData.DirectionHint == PlayerRelativeDirection.None)
@@ -245,7 +246,7 @@ namespace KalBeat.Charting
                 {
                     result.AddError(
                         ErrorCodeRangedPairInvalid,
-                        "Each RangedThreatDodgeOnly cue must contain exactly one Ready call and one Timing response.",
+                        "Each ranged cue must contain exactly one Ready call and one Timing response.",
                         pairState.FirstEventIndex);
                 }
             }
@@ -271,30 +272,31 @@ namespace KalBeat.Charting
                     eventData.Kind == CombatEventKind.RangedThreatDodgeOnly);
         }
 
-        private static void ValidateRangedDodgeEvent(
+        private static void ValidateRangedPhraseEvent(
             ChartValidationResult result,
             Dictionary<string, RangedPairValidationState> rangedPairs,
             ChartEventData eventData,
             int eventIndex)
         {
+            string kindName = eventData.Kind.ToString();
             if (string.IsNullOrWhiteSpace(eventData.RangedPhraseId))
             {
-                result.AddError(ErrorCodeRangedPhraseMissing, "RangedThreatDodgeOnly event must set RangedPhraseId.", eventIndex);
+                result.AddError(ErrorCodeRangedPhraseMissing, $"{kindName} event must set RangedPhraseId.", eventIndex);
             }
 
             if (eventData.RangedCueIndex < 0)
             {
-                result.AddError(ErrorCodeRangedCueIndexInvalid, "RangedThreatDodgeOnly event must set RangedCueIndex greater than or equal to 0.", eventIndex);
+                result.AddError(ErrorCodeRangedCueIndexInvalid, $"{kindName} event must set RangedCueIndex greater than or equal to 0.", eventIndex);
             }
 
             if (eventData.RangedAnchorIndex < 0)
             {
-                result.AddError(ErrorCodeRangedAnchorIndexInvalid, "RangedThreatDodgeOnly event must set RangedAnchorIndex greater than or equal to 0.", eventIndex);
+                result.AddError(ErrorCodeRangedAnchorIndexInvalid, $"{kindName} event must set RangedAnchorIndex greater than or equal to 0.", eventIndex);
             }
 
             if (eventData.Phase == CombatEventPhase.Ready && eventData.ReadyCueType != ReadyCueType.None)
             {
-                result.AddError(ErrorCodeRangedReadyCueInvalid, "RangedThreatDodgeOnly Ready event is treated as a magic circle call and must not set ReadyCueType.", eventIndex);
+                result.AddError(ErrorCodeRangedReadyCueInvalid, $"{kindName} Ready event is treated as a call and must not set ReadyCueType.", eventIndex);
             }
 
             if (string.IsNullOrWhiteSpace(eventData.RangedPhraseId) || eventData.RangedCueIndex < 0)
@@ -302,7 +304,7 @@ namespace KalBeat.Charting
                 return;
             }
 
-            string key = $"{eventData.Lane}:{eventData.RangedPhraseId}:{eventData.RangedCueIndex}";
+            string key = $"{eventData.Lane}:{(int)eventData.Kind}:{eventData.RangedPhraseId}:{eventData.RangedCueIndex}";
             if (!rangedPairs.TryGetValue(key, out RangedPairValidationState pairState))
             {
                 pairState = new RangedPairValidationState(eventIndex, eventData.RangedAnchorIndex);
@@ -312,7 +314,7 @@ namespace KalBeat.Charting
             {
                 result.AddError(
                     ErrorCodeRangedPairAnchorMismatch,
-                    "RangedThreatDodgeOnly Ready and Timing events with the same phrase/cue must use the same RangedAnchorIndex.",
+                    "Ranged Ready and Timing events with the same phrase/cue must use the same RangedAnchorIndex.",
                     eventIndex);
             }
 
@@ -324,6 +326,12 @@ namespace KalBeat.Charting
             {
                 pairState.TimingCount++;
             }
+        }
+
+        private static bool IsRangedPhraseKind(CombatEventKind kind)
+        {
+            return kind == CombatEventKind.RangedThreatDodgeOnly ||
+                   kind == CombatEventKind.RangedThreatCounterable;
         }
 
         private sealed class RangedPairValidationState

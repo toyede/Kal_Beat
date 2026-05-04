@@ -63,8 +63,20 @@ namespace KalBeat.Combat
 
             if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable &&
+                resolvedStep.Kind != CombatEventKind.RangedThreatCounterable &&
                 resolvedStep.Kind != CombatEventKind.RangedThreatDodgeOnly)
             {
+                return;
+            }
+
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable)
+            {
+                if (resolvedStep.Phase == CombatEventPhase.Ready)
+                {
+                    TryAssignRangedAttackVisualView();
+                    rangedAttackVisualView?.ShowCounterProjectile(resolvedStep, DuelRoot);
+                }
+
                 return;
             }
 
@@ -114,6 +126,11 @@ namespace KalBeat.Combat
                 return;
             }
 
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable)
+            {
+                return;
+            }
+
             if (resolvedStep.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -132,6 +149,13 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedJudgementResult(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
         {
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable)
+            {
+                TryAssignRangedAttackVisualView();
+                rangedAttackVisualView?.ResolveCounterProjectile(resolvedStep, grade);
+                return;
+            }
+
             if ((resolvedStep.Kind != CombatEventKind.MeleeThreatCounterable &&
                  resolvedStep.Kind != CombatEventKind.PlayerDashAttack) ||
                 DuelRoot == null)

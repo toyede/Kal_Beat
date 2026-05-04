@@ -15,7 +15,6 @@ namespace KalBeat.Combat
         [SerializeField] private MonsterCombatActor monsterActor;
         [SerializeField] private CombatJudgementSystem judgementSystem;
         [SerializeField] private bool playOnStart = true;
-        [SerializeField] private string readyCueEventPath = "event:/preview/finger_snap";
         [SerializeField] private string judgementInputCueEventPath = "event:/preview/finger_snap";
         [SerializeField] private bool enableJudgementLogs = true;
 
@@ -307,8 +306,11 @@ namespace KalBeat.Combat
 
         private void PlayReadyCue(ResolvedCombatStep resolvedStep)
         {
-            if (string.IsNullOrWhiteSpace(readyCueEventPath))
+            if (resolvedStep == null || string.IsNullOrWhiteSpace(resolvedStep.ReadyCueEventPath))
             {
+                Debug.LogError(
+                    "Ready cue FMOD path is missing from ResolvedCombatStep. Define ReadyCueEventPath on the source PatternDefinition and save the chart again.",
+                    this);
                 return;
             }
 
@@ -321,7 +323,7 @@ namespace KalBeat.Combat
                 cuePosition = duelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos);
             }
 
-            RuntimeManager.PlayOneShot(readyCueEventPath, cuePosition);
+            RuntimeManager.PlayOneShot(resolvedStep.ReadyCueEventPath, cuePosition);
         }
 
         private void PlayJudgementInputCue()
@@ -399,7 +401,9 @@ namespace KalBeat.Combat
                    resolvedStep.Phase == CombatEventPhase.Ready &&
                    (resolvedStep.ReadyCueType == ReadyCueType.Pose ||
                     resolvedStep.ReadyCueType == ReadyCueType.Move ||
-                    resolvedStep.Kind == CombatEventKind.PlayerDashAttack);
+                    resolvedStep.Kind == CombatEventKind.PlayerDashAttack ||
+                    resolvedStep.Kind == CombatEventKind.RangedThreatCounterable ||
+                    resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly);
         }
 
         private static bool ShouldStartPlayerStep(ResolvedCombatStep resolvedStep)
@@ -411,6 +415,8 @@ namespace KalBeat.Combat
 
             return (resolvedStep.Kind == CombatEventKind.PlayerDashAttack &&
                     resolvedStep.Phase == CombatEventPhase.Timing) ||
+                   (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable &&
+                    resolvedStep.Phase == CombatEventPhase.Ready) ||
                    (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly &&
                     resolvedStep.Phase == CombatEventPhase.Ready);
         }

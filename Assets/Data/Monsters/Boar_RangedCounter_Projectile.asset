@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91f7123103bf3864fb9b4210c577c152, type: 3}
+  m_Name: Boar_RangedCounter_Projectile
+  m_EditorClassIdentifier: 
+  patternId: boar_ranged_counter_projectile_01
+  displayName: Boar Ranged Counter Projectile 01
+  combatKind: 5
+  entryBandUnits: 6
+  readyCueEventPath: event:/preview/finger_snap
+  rangedCueCount: 8
+  rangedAnchorCount: 8
+  rangedCueIntervalBeats: 0.5
+  rangedResponseOffsetBeats: 4
+  rangedDodgeMoveUnits: 0
+  rangedResponseBandUnits: 4
+  autoMovePlayerToResponseBand: 1
+  projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
+  projectileFrontTipName: FrontTip
+  projectileTravelUnits: 2
+  projectileTravelDurationSec: 0.1
+  steps: []

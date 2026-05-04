@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Boar Melee Dodge 01
   combatKind: 2
   entryBandUnits: 4
+  readyCueEventPath: event:/preview/finger_snap
   steps:
   - beatOffsetFromTiming: -1
     phase: 0

@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Countable_move
   combatKind: 1
   entryBandUnits: 4
+  readyCueEventPath: event:/preview/finger_snap
   steps:
   - beatOffsetFromTiming: -2
     phase: 0

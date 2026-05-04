@@ -28,6 +28,7 @@ namespace KalBeat.Combat
         [SerializeField] private float beamWidth = 0.18f;
 
         private readonly Dictionary<string, ActiveCircle> activeCircles = new Dictionary<string, ActiveCircle>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ActiveProjectile> activeProjectiles = new Dictionary<string, ActiveProjectile>(StringComparer.Ordinal);
         private Material runtimeLineMaterial;
 
         public void ShowCallCircle(ResolvedCombatStep resolvedStep)
@@ -85,6 +86,62 @@ namespace KalBeat.Combat
             activeCircle.View.SetVisualState(activeCircle.RemainingShots, baseCircleColor, stackedCircleColor, stackedCircleScale);
         }
 
+        public void ShowCounterProjectile(ResolvedCombatStep resolvedStep, CombatDuelRoot duelRoot)
+        {
+            if (resolvedStep == null || duelRoot == null || !resolvedStep.HasProjectileData)
+            {
+                return;
+            }
+
+            if (resolvedStep.ProjectilePrefab == null)
+            {
+                Debug.LogWarning("Ranged counter projectile prefab is missing from ResolvedCombatStep.", this);
+                return;
+            }
+
+            string key = BuildProjectileKey(resolvedStep);
+            if (activeProjectiles.TryGetValue(key, out ActiveProjectile existingProjectile))
+            {
+                DestroyProjectile(key, existingProjectile);
+            }
+
+            Vector3 spawnWorldPosition = duelRoot.ConvertDuelLocal3DToWorld(resolvedStep.ProjectileSpawnLocalPos);
+            Vector3 targetWorldPosition = duelRoot.ConvertDuelLocal3DToWorld(resolvedStep.ProjectileTargetPivotLocalPos);
+            GameObject projectileObject = Instantiate(resolvedStep.ProjectilePrefab, spawnWorldPosition, Quaternion.identity);
+            Vector3 direction = targetWorldPosition - spawnWorldPosition;
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                projectileObject.transform.forward = direction.normalized;
+            }
+
+            Coroutine routine = StartCoroutine(CounterProjectileRoutine(
+                key,
+                projectileObject,
+                spawnWorldPosition,
+                targetWorldPosition,
+                resolvedStep));
+            activeProjectiles.Add(key, new ActiveProjectile(projectileObject, routine));
+        }
+
+        public void ResolveCounterProjectile(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
+        {
+            if (resolvedStep == null ||
+                (grade != CombatJudgementGrade.Perfect &&
+                 grade != CombatJudgementGrade.Good &&
+                 grade != CombatJudgementGrade.Miss))
+            {
+                return;
+            }
+
+            string key = BuildProjectileKey(resolvedStep);
+            if (!activeProjectiles.TryGetValue(key, out ActiveProjectile activeProjectile))
+            {
+                return;
+            }
+
+            DestroyProjectile(key, activeProjectile);
+        }
+
         public void Clear()
         {
             foreach (KeyValuePair<string, ActiveCircle> pair in activeCircles)
@@ -96,6 +153,21 @@ namespace KalBeat.Combat
             }
 
             activeCircles.Clear();
+
+            foreach (KeyValuePair<string, ActiveProjectile> pair in activeProjectiles)
+            {
+                if (pair.Value?.Routine != null)
+                {
+                    StopCoroutine(pair.Value.Routine);
+                }
+
+                if (pair.Value?.ProjectileObject != null)
+                {
+                    Destroy(pair.Value.ProjectileObject);
+                }
+            }
+
+            activeProjectiles.Clear();
         }
 
         private RangedMagicCircleView CreateCircle(Transform anchor)
@@ -138,6 +210,52 @@ namespace KalBeat.Combat
             }
 
             Destroy(beamObject);
+        }
+
+        private IEnumerator CounterProjectileRoutine(
+            string key,
+            GameObject projectileObject,
+            Vector3 spawnWorldPosition,
+            Vector3 targetWorldPosition,
+            ResolvedCombatStep resolvedStep)
+        {
+            float launchDelaySec = Mathf.Max(0f, resolvedStep.ProjectileLaunchSec - resolvedStep.HitSec);
+            float elapsedDelaySec = 0f;
+            while (elapsedDelaySec < launchDelaySec)
+            {
+                if (projectileObject == null)
+                {
+                    yield break;
+                }
+
+                elapsedDelaySec += Time.deltaTime;
+                yield return null;
+            }
+
+            float travelDurationSec = Mathf.Max(0.0001f, resolvedStep.ProjectileContactSec - resolvedStep.ProjectileLaunchSec);
+            float elapsedTravelSec = 0f;
+            while (elapsedTravelSec < travelDurationSec)
+            {
+                if (projectileObject == null)
+                {
+                    yield break;
+                }
+
+                elapsedTravelSec += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsedTravelSec / travelDurationSec);
+                projectileObject.transform.position = Vector3.Lerp(spawnWorldPosition, targetWorldPosition, t);
+                yield return null;
+            }
+
+            if (projectileObject != null)
+            {
+                projectileObject.transform.position = targetWorldPosition;
+            }
+
+            if (activeProjectiles.TryGetValue(key, out ActiveProjectile activeProjectile))
+            {
+                activeProjectile.Routine = null;
+            }
         }
 
         private Transform ResolveAnchor(int anchorIndex, int cueIndex)
@@ -273,6 +391,25 @@ namespace KalBeat.Combat
             return $"{resolvedStep.RangedPhraseId}:{resolvedStep.RangedAnchorIndex}";
         }
 
+        private static string BuildProjectileKey(ResolvedCombatStep resolvedStep)
+        {
+            return $"{resolvedStep.RangedPhraseId}:{resolvedStep.RangedCueIndex}";
+        }
+
+        private void DestroyProjectile(string key, ActiveProjectile activeProjectile)
+        {
+            activeProjectiles.Remove(key);
+            if (activeProjectile?.Routine != null)
+            {
+                StopCoroutine(activeProjectile.Routine);
+            }
+
+            if (activeProjectile?.ProjectileObject != null)
+            {
+                Destroy(activeProjectile.ProjectileObject);
+            }
+        }
+
         private static int CompareTransformsByName(Transform left, Transform right)
         {
             if (ReferenceEquals(left, right))
@@ -324,6 +461,18 @@ namespace KalBeat.Combat
 
             public RangedMagicCircleView View { get; }
             public int RemainingShots { get; set; }
+        }
+
+        private sealed class ActiveProjectile
+        {
+            public ActiveProjectile(GameObject projectileObject, Coroutine routine)
+            {
+                ProjectileObject = projectileObject;
+                Routine = routine;
+            }
+
+            public GameObject ProjectileObject { get; }
+            public Coroutine Routine { get; set; }
         }
     }
 }

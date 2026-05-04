@@ -15,6 +15,7 @@ namespace KalBeat.Charting
         [SerializeField] private CombatEventPhase phase = CombatEventPhase.Timing;
         [SerializeField] private int stepIndex;
         [SerializeField] private ReadyCueType readyCueType = ReadyCueType.None;
+        [SerializeField] private string readyCueEventPath = string.Empty;
         [SerializeField] private PlayerRelativeDirection playerDirectionHint = PlayerRelativeDirection.None;
         [SerializeField] private MovementResolveMode movementResolveMode = MovementResolveMode.None;
         [SerializeField] private float moveUnits;
@@ -39,6 +40,14 @@ namespace KalBeat.Charting
         [SerializeField] private string rangedPhraseId = string.Empty;
         [SerializeField] private int rangedCueIndex = -1;
         [SerializeField] private int rangedAnchorIndex = -1;
+        [SerializeField] private bool hasProjectileData;
+        [SerializeField] private GameObject projectilePrefab;
+        [SerializeField] private Vector3 projectileSpawnLocalPos;
+        [SerializeField] private Vector3 projectileTargetPivotLocalPos;
+        [SerializeField] private Vector3 projectileContactLocalPos;
+        [SerializeField] private float projectileLaunchSec;
+        [SerializeField] private float projectileContactSec;
+        [SerializeField] private float projectileFrontOffsetUnits;
 
         public string MonsterId
         {
@@ -86,6 +95,12 @@ namespace KalBeat.Charting
         {
             get => readyCueType;
             set => readyCueType = value;
+        }
+
+        public string ReadyCueEventPath
+        {
+            get => readyCueEventPath;
+            set => readyCueEventPath = value;
         }
 
         public PlayerRelativeDirection PlayerDirectionHint
@@ -230,6 +245,54 @@ namespace KalBeat.Charting
         {
             get => rangedAnchorIndex;
             set => rangedAnchorIndex = value;
+        }
+
+        public bool HasProjectileData
+        {
+            get => hasProjectileData;
+            set => hasProjectileData = value;
+        }
+
+        public GameObject ProjectilePrefab
+        {
+            get => projectilePrefab;
+            set => projectilePrefab = value;
+        }
+
+        public Vector3 ProjectileSpawnLocalPos
+        {
+            get => projectileSpawnLocalPos;
+            set => projectileSpawnLocalPos = value;
+        }
+
+        public Vector3 ProjectileTargetPivotLocalPos
+        {
+            get => projectileTargetPivotLocalPos;
+            set => projectileTargetPivotLocalPos = value;
+        }
+
+        public Vector3 ProjectileContactLocalPos
+        {
+            get => projectileContactLocalPos;
+            set => projectileContactLocalPos = value;
+        }
+
+        public float ProjectileLaunchSec
+        {
+            get => projectileLaunchSec;
+            set => projectileLaunchSec = value;
+        }
+
+        public float ProjectileContactSec
+        {
+            get => projectileContactSec;
+            set => projectileContactSec = value;
+        }
+
+        public float ProjectileFrontOffsetUnits
+        {
+            get => projectileFrontOffsetUnits;
+            set => projectileFrontOffsetUnits = value;
         }
     }
 }

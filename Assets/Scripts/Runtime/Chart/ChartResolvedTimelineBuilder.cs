@@ -8,7 +8,7 @@ namespace KalBeat.Charting
 {
     public static class ChartResolvedTimelineBuilder
     {
-        private const string ResolverVersion = "ranged-dodge-pattern-v1";
+        private const string ResolverVersion = "ranged-counter-projectile-v1";
         private const float DefaultMeleeDodgeResolveUnits = 4f;
         private const float DefaultRangedDodgeMoveUnits = 4f;
         private const float DefaultRangedDodgeBandUnits = 4f;
@@ -83,7 +83,7 @@ namespace KalBeat.Charting
                         .Append(eventData.AppliedPatternId).Append(':')
                         .Append(eventData.AppliedPatternSignature);
 
-                    if (eventData.Kind == CombatEventKind.RangedThreatDodgeOnly)
+                    if (IsRangedPhraseKind(eventData.Kind))
                     {
                         builder.Append(':')
                             .Append(eventData.RangedPhraseId).Append(':')
@@ -102,6 +102,15 @@ namespace KalBeat.Charting
             ChartData chart,
             Func<string, MonsterDefinition> monsterResolver,
             out string errorMessage)
+        {
+            return TryGenerate(chart, monsterResolver, out errorMessage, null);
+        }
+
+        public static bool TryGenerate(
+            ChartData chart,
+            Func<string, MonsterDefinition> monsterResolver,
+            out string errorMessage,
+            ChartResolvedTimelineBuildContext buildContext)
         {
             errorMessage = string.Empty;
             if (chart == null)
@@ -160,7 +169,9 @@ namespace KalBeat.Charting
             bool stateInitialized = false;
             Vector2 currentPlayerLocalPosition = Vector2.zero;
             Vector2 currentMonsterLocalPosition = Vector2.zero;
-            Dictionary<string, RangedPhraseTiming> rangedPhraseTimings = BuildRangedPhraseTimings(orderedEvents);
+            Dictionary<string, ChartEventData> rangedCounterTimingEvents = BuildRangedTimingEvents(
+                orderedEvents,
+                CombatEventKind.RangedThreatCounterable);
             Dictionary<string, RangedPhraseFrame> rangedPhraseFrames =
                 new Dictionary<string, RangedPhraseFrame>(StringComparer.Ordinal);
 
@@ -202,6 +213,21 @@ namespace KalBeat.Charting
                 }
 
                 float hitSec = GetEventTimeSec(chart.Meta, eventData);
+                PatternDefinition appliedPatternDefinition = ResolvePatternDefinition(
+                    monsterDefinition,
+                    eventData,
+                    IsRangedPhraseKind(eventData.Kind));
+
+                if (!TryResolveReadyCueEventPath(
+                        eventData,
+                        appliedPatternDefinition,
+                        out string readyCueEventPath,
+                        out errorMessage))
+                {
+                    chart.ResolvedTimeline.SetInvalid(errorMessage);
+                    return false;
+                }
+
                 ResolvedCombatStep resolvedStep = new ResolvedCombatStep
                 {
                     MonsterId = monsterDefinition.MonsterId,
@@ -212,6 +238,7 @@ namespace KalBeat.Charting
                     Phase = eventData.Phase,
                     StepIndex = eventData.StepIndex,
                     ReadyCueType = eventData.ReadyCueType,
+                    ReadyCueEventPath = readyCueEventPath,
                     PlayerDirectionHint = eventData.DirectionHint,
                     MovementResolveMode = eventData.MovementResolveMode,
                     MoveUnits = eventData.MoveUnits,
@@ -236,16 +263,16 @@ namespace KalBeat.Charting
                 float monsterDurationSec = 0f;
                 float playerStartSec = hitSec;
                 float playerDurationSec = 0f;
-                RangedDodgeSettings rangedDodgeSettings = ResolveRangedDodgeSettings(monsterDefinition, eventData);
+                RangedPhraseSettings rangedPhraseSettings = ResolveRangedPhraseSettings(appliedPatternDefinition);
                 RangedPhraseFrame rangedPhraseFrame = default;
                 bool isNewRangedPhraseFrame = false;
-                bool hasRangedPhraseFrame = eventData.Kind == CombatEventKind.RangedThreatDodgeOnly &&
+                bool hasRangedPhraseFrame = IsRangedPhraseKind(eventData.Kind) &&
                                             TryGetRangedPhraseFrame(
                                                 rangedPhraseFrames,
                                                 eventData,
                                                 currentPlayerLocalPosition,
                                                 currentMonsterLocalPosition,
-                                                rangedDodgeSettings,
+                                                rangedPhraseSettings,
                                                 out isNewRangedPhraseFrame,
                                                 out rangedPhraseFrame);
 
@@ -277,21 +304,50 @@ namespace KalBeat.Charting
                                 return false;
                             }
                         }
-                        else if (eventData.Kind == CombatEventKind.RangedThreatDodgeOnly &&
+                        else if (IsRangedPhraseKind(eventData.Kind) &&
                                  hasRangedPhraseFrame &&
                                  isNewRangedPhraseFrame &&
-                                 rangedDodgeSettings.AutoMovePlayerToResponseBand)
+                                 rangedPhraseSettings.AutoMovePlayerToResponseBand)
                         {
                             endPlayerLocalPosition = rangedPhraseFrame.ResponsePlayerLocalPosition;
                             resolvedStep.PlayerApproachLocalPos = endPlayerLocalPosition;
 
                             if (!Approximately(currentPlayerLocalPosition, endPlayerLocalPosition))
                             {
-                                playerDurationSec = ResolveRangedResponseLeadDurationSec(
+                                float playerMoveUnits = Vector2.Distance(currentPlayerLocalPosition, endPlayerLocalPosition);
+                                if (!monsterDefinition.TryGetReadyMoveDurationSec(playerMoveUnits, out playerDurationSec))
+                                {
+                                    errorMessage =
+                                        $"Ranged auto response band move at beat {eventData.Beat:0.###} requires ReadyMoveDuration for {playerMoveUnits:0.###} units (band {currentBandUnits:0.###} -> {rangedPhraseFrame.ResponseBandUnits:0.###}).";
+                                    chart.ResolvedTimeline.SetInvalid(errorMessage);
+                                    return false;
+                                }
+
+                                playerStartSec = hitSec - playerDurationSec;
+                            }
+                        }
+
+                        if (eventData.Kind == CombatEventKind.RangedThreatCounterable)
+                        {
+                            Vector2 projectilePlayerLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponsePlayerLocalPosition
+                                : endPlayerLocalPosition;
+                            Vector2 projectileMonsterLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponseMonsterLocalPosition
+                                : endMonsterLocalPosition;
+                            if (!TryBakeRangedCounterProjectile(
                                     chart.Meta,
+                                    buildContext,
                                     eventData,
-                                    rangedPhraseTimings,
-                                    rangedDodgeSettings);
+                                    appliedPatternDefinition,
+                                    projectilePlayerLocalPosition,
+                                    projectileMonsterLocalPosition,
+                                    rangedCounterTimingEvents,
+                                    resolvedStep,
+                                    out errorMessage))
+                            {
+                                chart.ResolvedTimeline.SetInvalid(errorMessage);
+                                return false;
                             }
                         }
 
@@ -301,10 +357,11 @@ namespace KalBeat.Charting
                         if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                             eventData.Kind != CombatEventKind.MeleeThreatCounterable &&
                             eventData.Kind != CombatEventKind.PlayerDashAttack &&
+                            eventData.Kind != CombatEventKind.RangedThreatCounterable &&
                             eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
                         {
                             errorMessage =
-                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}, {CombatEventKind.MeleeThreatCounterable}, {CombatEventKind.PlayerDashAttack}, and {CombatEventKind.RangedThreatDodgeOnly}.";
+                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}, {CombatEventKind.MeleeThreatCounterable}, {CombatEventKind.PlayerDashAttack}, {CombatEventKind.RangedThreatCounterable}, and {CombatEventKind.RangedThreatDodgeOnly}.";
                             chart.ResolvedTimeline.SetInvalid(errorMessage);
                             return false;
                         }
@@ -353,7 +410,16 @@ namespace KalBeat.Charting
                                 referenceMonsterLocalPosition,
                                 eventData.DirectionHint == PlayerRelativeDirection.None ? PlayerRelativeDirection.Right : eventData.DirectionHint,
                                 responseBandUnits,
-                                rangedDodgeSettings.DodgeMoveUnits);
+                                rangedPhraseSettings.DodgeMoveUnits);
+                        }
+                        else if (eventData.Kind == CombatEventKind.RangedThreatCounterable)
+                        {
+                            endPlayerLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponsePlayerLocalPosition
+                                : currentPlayerLocalPosition;
+                            endMonsterLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponseMonsterLocalPosition
+                                : currentMonsterLocalPosition;
                         }
                         else
                         {
@@ -541,7 +607,7 @@ namespace KalBeat.Charting
             ChartEventData eventData,
             Vector2 currentPlayerLocalPosition,
             Vector2 currentMonsterLocalPosition,
-            RangedDodgeSettings rangedDodgeSettings,
+            RangedPhraseSettings rangedPhraseSettings,
             out bool isNewFrame,
             out RangedPhraseFrame phraseFrame)
         {
@@ -559,8 +625,8 @@ namespace KalBeat.Charting
             }
 
             float currentBandUnits = CombatDuelMath.GetBandUnits(currentPlayerLocalPosition, currentMonsterLocalPosition);
-            float responseBandUnits = rangedDodgeSettings.AutoMovePlayerToResponseBand
-                ? rangedDodgeSettings.ResponseBandUnits
+            float responseBandUnits = rangedPhraseSettings.AutoMovePlayerToResponseBand
+                ? rangedPhraseSettings.ResponseBandUnits
                 : currentBandUnits;
             if (responseBandUnits <= 0.0001f)
             {
@@ -581,71 +647,207 @@ namespace KalBeat.Charting
             return true;
         }
 
-        private static Dictionary<string, RangedPhraseTiming> BuildRangedPhraseTimings(List<ChartEventData> orderedEvents)
+        private static Dictionary<string, ChartEventData> BuildRangedTimingEvents(
+            List<ChartEventData> orderedEvents,
+            CombatEventKind targetKind)
         {
-            Dictionary<string, RangedPhraseTiming> timings = new Dictionary<string, RangedPhraseTiming>(StringComparer.Ordinal);
+            Dictionary<string, ChartEventData> timingEvents = new Dictionary<string, ChartEventData>(StringComparer.Ordinal);
             if (orderedEvents == null)
             {
-                return timings;
+                return timingEvents;
             }
 
             for (int i = 0; i < orderedEvents.Count; i++)
             {
                 ChartEventData eventData = orderedEvents[i];
-                if (eventData == null || eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
+                if (eventData == null ||
+                    eventData.Kind != targetKind ||
+                    eventData.Phase != CombatEventPhase.Timing ||
+                    string.IsNullOrWhiteSpace(eventData.RangedPhraseId) ||
+                    eventData.RangedCueIndex < 0)
                 {
                     continue;
                 }
 
-                string key = BuildRangedPhraseFrameKey(eventData);
-                if (!timings.TryGetValue(key, out RangedPhraseTiming timing))
-                {
-                    timing = new RangedPhraseTiming();
-                }
-
-                if (eventData.Phase == CombatEventPhase.Ready)
-                {
-                    if (!timing.HasFirstReadyBeat || eventData.Beat < timing.FirstReadyBeat)
-                    {
-                        timing.HasFirstReadyBeat = true;
-                        timing.FirstReadyBeat = eventData.Beat;
-                    }
-                }
-                else if (eventData.Phase == CombatEventPhase.Timing)
-                {
-                    if (!timing.HasFirstTimingBeat || eventData.Beat < timing.FirstTimingBeat)
-                    {
-                        timing.HasFirstTimingBeat = true;
-                        timing.FirstTimingBeat = eventData.Beat;
-                    }
-                }
-
-                timings[key] = timing;
+                timingEvents[BuildRangedCuePairKey(eventData)] = eventData;
             }
 
-            return timings;
+            return timingEvents;
         }
 
-        private static float ResolveRangedResponseLeadDurationSec(
+        private static bool TryBakeRangedCounterProjectile(
             ChartMeta meta,
-            ChartEventData eventData,
-            Dictionary<string, RangedPhraseTiming> rangedPhraseTimings,
-            RangedDodgeSettings rangedDodgeSettings)
+            ChartResolvedTimelineBuildContext buildContext,
+            ChartEventData readyEvent,
+            PatternDefinition patternDefinition,
+            Vector2 currentPlayerLocalPosition,
+            Vector2 currentMonsterLocalPosition,
+            Dictionary<string, ChartEventData> rangedCounterTimingEvents,
+            ResolvedCombatStep resolvedStep,
+            out string errorMessage)
         {
-            float durationBeats = rangedDodgeSettings.ResponseOffsetBeats;
-            if (eventData != null && rangedPhraseTimings != null)
+            errorMessage = string.Empty;
+            if (readyEvent == null || resolvedStep == null)
             {
-                string key = BuildRangedPhraseFrameKey(eventData);
-                if (rangedPhraseTimings.TryGetValue(key, out RangedPhraseTiming timing) &&
-                    timing.HasFirstTimingBeat &&
-                    timing.FirstTimingBeat > eventData.Beat)
+                errorMessage = "Ranged counter projectile bake failed because the Ready event is missing.";
+                return false;
+            }
+
+            if (buildContext == null)
+            {
+                errorMessage = "RangedThreatCounterable requires scene bake markers. Save from a scene with CombatDuelRoot, PlayerHitAnchor, and RangedAnchorRoot.";
+                return false;
+            }
+
+            if (!buildContext.HasPlayerHitAnchor)
+            {
+                errorMessage = "RangedThreatCounterable requires PlayerHitAnchor under the player.";
+                return false;
+            }
+
+            if (patternDefinition == null)
+            {
+                errorMessage = $"Ranged counter Ready event at beat {readyEvent.Beat:0.###} requires an applied PatternDefinition.";
+                return false;
+            }
+
+            if (patternDefinition.ProjectilePrefab == null)
+            {
+                errorMessage = $"Pattern '{patternDefinition.DisplayName}' must assign ProjectilePrefab for RangedThreatCounterable.";
+                return false;
+            }
+
+            if (patternDefinition.ProjectileTravelUnits <= 0f || patternDefinition.ProjectileTravelDurationSec <= 0f)
+            {
+                errorMessage = $"Pattern '{patternDefinition.DisplayName}' must define projectile travel speed greater than 0.";
+                return false;
+            }
+
+            if (!buildContext.TryGetRangedAnchorLocalOffset(readyEvent.RangedAnchorIndex, out Vector3 anchorOffsetUnits))
+            {
+                errorMessage = $"RangedThreatCounterable requires RangedAnchor index {readyEvent.RangedAnchorIndex}.";
+                return false;
+            }
+
+            if (rangedCounterTimingEvents == null ||
+                !rangedCounterTimingEvents.TryGetValue(BuildRangedCuePairKey(readyEvent), out ChartEventData timingEvent))
+            {
+                errorMessage = $"Ranged counter Ready event at beat {readyEvent.Beat:0.###} is missing its Timing response.";
+                return false;
+            }
+
+            if (!TryGetProjectileFrontOffsetUnits(patternDefinition, buildContext.UnitSize, out float frontOffsetUnits, out errorMessage))
+            {
+                return false;
+            }
+
+            Vector2 duelForward = CombatDuelMath.GetDuelForward(currentPlayerLocalPosition, currentMonsterLocalPosition);
+            Vector3 spawnLocalPosition = ResolveActorMarkerLocalPosition(
+                currentMonsterLocalPosition,
+                -duelForward,
+                anchorOffsetUnits);
+            Vector3 contactLocalPosition = ResolveActorMarkerLocalPosition(
+                currentPlayerLocalPosition,
+                duelForward,
+                buildContext.PlayerHitAnchorLocalOffsetUnits);
+
+            Vector3 projectileDirection = contactLocalPosition - spawnLocalPosition;
+            if (projectileDirection.sqrMagnitude <= 0.0001f)
+            {
+                errorMessage = $"Ranged counter projectile at beat {readyEvent.Beat:0.###} has no travel distance.";
+                return false;
+            }
+
+            projectileDirection.Normalize();
+            Vector3 targetPivotLocalPosition = contactLocalPosition - (projectileDirection * frontOffsetUnits);
+            float travelUnits = Vector3.Distance(spawnLocalPosition, targetPivotLocalPosition);
+            float travelDurationSec = travelUnits * (patternDefinition.ProjectileTravelDurationSec / patternDefinition.ProjectileTravelUnits);
+            float contactSec = GetEventTimeSec(meta, timingEvent) + Mathf.Max(0f, buildContext.GoodWindowSec);
+            float launchSec = contactSec - travelDurationSec;
+            float readyHitSec = GetEventTimeSec(meta, readyEvent);
+
+            if (launchSec < readyHitSec)
+            {
+                buildContext.AddWarning("Projectile speed is too slow. Please increase projectile speed.");
+            }
+
+            resolvedStep.HasProjectileData = true;
+            resolvedStep.ProjectilePrefab = patternDefinition.ProjectilePrefab;
+            resolvedStep.ProjectileSpawnLocalPos = spawnLocalPosition;
+            resolvedStep.ProjectileTargetPivotLocalPos = targetPivotLocalPosition;
+            resolvedStep.ProjectileContactLocalPos = contactLocalPosition;
+            resolvedStep.ProjectileLaunchSec = launchSec;
+            resolvedStep.ProjectileContactSec = contactSec;
+            resolvedStep.ProjectileFrontOffsetUnits = frontOffsetUnits;
+            return true;
+        }
+
+        private static bool TryGetProjectileFrontOffsetUnits(
+            PatternDefinition patternDefinition,
+            float unitSize,
+            out float frontOffsetUnits,
+            out string errorMessage)
+        {
+            frontOffsetUnits = 0f;
+            errorMessage = string.Empty;
+
+            if (patternDefinition == null || patternDefinition.ProjectilePrefab == null)
+            {
+                errorMessage = "Projectile prefab is missing.";
+                return false;
+            }
+
+            Transform frontTip = FindChildByName(
+                patternDefinition.ProjectilePrefab.transform,
+                patternDefinition.ProjectileFrontTipName);
+            if (frontTip == null)
+            {
+                errorMessage = $"Projectile prefab '{patternDefinition.ProjectilePrefab.name}' must contain '{patternDefinition.ProjectileFrontTipName}'.";
+                return false;
+            }
+
+            Vector3 frontTipLocalPosition = patternDefinition.ProjectilePrefab.transform.InverseTransformPoint(frontTip.position);
+            float safeUnitSize = Mathf.Max(0.0001f, unitSize);
+            frontOffsetUnits = Mathf.Max(0f, frontTipLocalPosition.z / safeUnitSize);
+            if (frontOffsetUnits <= 0.0001f)
+            {
+                errorMessage = $"Projectile prefab '{patternDefinition.ProjectilePrefab.name}' FrontTip must be placed in front of the projectile root.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static Transform FindChildByName(Transform root, string childName)
+        {
+            if (root == null || string.IsNullOrWhiteSpace(childName))
+            {
+                return null;
+            }
+
+            Transform[] children = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < children.Length; i++)
+            {
+                if (children[i] != null && string.Equals(children[i].name, childName, StringComparison.Ordinal))
                 {
-                    durationBeats = timing.FirstTimingBeat - eventData.Beat;
+                    return children[i];
                 }
             }
 
-            float bpm = meta != null && meta.Bpm > 0f ? meta.Bpm : 120f;
-            return Mathf.Max(0f, durationBeats * (60f / bpm));
+            return null;
+        }
+
+        private static Vector3 ResolveActorMarkerLocalPosition(
+            Vector2 actorLocalPosition,
+            Vector2 actorForward,
+            Vector3 markerLocalOffsetUnits)
+        {
+            Vector2 safeForward = actorForward.sqrMagnitude > 0.0001f ? actorForward.normalized : Vector2.up;
+            Vector2 actorRight = new Vector2(safeForward.y, -safeForward.x);
+            Vector2 flatPosition = actorLocalPosition +
+                                   (actorRight * markerLocalOffsetUnits.x) +
+                                   (safeForward * markerLocalOffsetUnits.z);
+            return new Vector3(flatPosition.x, markerLocalOffsetUnits.y, flatPosition.y);
         }
 
         private static Vector2 ResolvePlayerOnBand(
@@ -667,25 +869,71 @@ namespace KalBeat.Charting
             return (left - right).sqrMagnitude <= 0.0001f;
         }
 
-        private static RangedDodgeSettings ResolveRangedDodgeSettings(MonsterDefinition monsterDefinition, ChartEventData eventData)
+        private static bool TryResolveReadyCueEventPath(
+            ChartEventData eventData,
+            PatternDefinition patternDefinition,
+            out string readyCueEventPath,
+            out string errorMessage)
         {
-            PatternDefinition patternDefinition = ResolveRangedPatternDefinition(monsterDefinition, eventData);
-            if (patternDefinition == null)
+            readyCueEventPath = string.Empty;
+            errorMessage = string.Empty;
+
+            if (!ShouldRequireReadyCuePath(eventData))
             {
-                return RangedDodgeSettings.Default;
+                return true;
             }
 
-            return new RangedDodgeSettings(
+            if (patternDefinition == null)
+            {
+                errorMessage =
+                    $"Ready cue at beat {eventData.Beat:0.###} requires an applied PatternDefinition. Apply a pattern to this event before saving.";
+                return false;
+            }
+
+            readyCueEventPath = patternDefinition.ReadyCueEventPath != null
+                ? patternDefinition.ReadyCueEventPath.Trim()
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(readyCueEventPath))
+            {
+                errorMessage =
+                    $"Pattern '{patternDefinition.DisplayName}' must define ReadyCueEventPath for the ready cue at beat {eventData.Beat:0.###}.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldRequireReadyCuePath(ChartEventData eventData)
+        {
+            return eventData != null &&
+                   eventData.Phase == CombatEventPhase.Ready &&
+                   (eventData.ReadyCueType == ReadyCueType.Pose ||
+                    eventData.ReadyCueType == ReadyCueType.Move ||
+                    eventData.Kind == CombatEventKind.PlayerDashAttack ||
+                    eventData.Kind == CombatEventKind.RangedThreatCounterable ||
+                    eventData.Kind == CombatEventKind.RangedThreatDodgeOnly);
+        }
+
+        private static RangedPhraseSettings ResolveRangedPhraseSettings(PatternDefinition patternDefinition)
+        {
+            if (patternDefinition == null || !IsRangedPhraseKind(patternDefinition.CombatKind))
+            {
+                return RangedPhraseSettings.Default;
+            }
+
+            return new RangedPhraseSettings(
                 patternDefinition.RangedDodgeMoveUnits,
                 patternDefinition.RangedResponseBandUnits,
                 patternDefinition.RangedResponseOffsetBeats,
                 patternDefinition.AutoMovePlayerToResponseBand);
         }
 
-        private static PatternDefinition ResolveRangedPatternDefinition(MonsterDefinition monsterDefinition, ChartEventData eventData)
+        private static PatternDefinition ResolvePatternDefinition(
+            MonsterDefinition monsterDefinition,
+            ChartEventData eventData,
+            bool allowSingleKindFallback)
         {
-            if (monsterDefinition == null || monsterDefinition.SupportedPatterns == null || eventData == null ||
-                eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
+            if (monsterDefinition == null || monsterDefinition.SupportedPatterns == null || eventData == null)
             {
                 return null;
             }
@@ -695,7 +943,7 @@ namespace KalBeat.Charting
             for (int i = 0; i < monsterDefinition.SupportedPatterns.Count; i++)
             {
                 PatternDefinition patternDefinition = monsterDefinition.SupportedPatterns[i];
-                if (patternDefinition == null || patternDefinition.CombatKind != CombatEventKind.RangedThreatDodgeOnly)
+                if (patternDefinition == null || patternDefinition.CombatKind != eventData.Kind)
                 {
                     continue;
                 }
@@ -706,13 +954,19 @@ namespace KalBeat.Charting
                     return patternDefinition;
                 }
 
-                fallbackPattern = patternDefinition;
-                fallbackCount++;
+                if (allowSingleKindFallback && string.IsNullOrWhiteSpace(eventData.AppliedPatternId))
+                {
+                    fallbackPattern = patternDefinition;
+                    fallbackCount++;
+                }
             }
 
-            return string.IsNullOrWhiteSpace(eventData.AppliedPatternId) && fallbackCount == 1
-                ? fallbackPattern
-                : null;
+            if (!string.IsNullOrWhiteSpace(eventData.AppliedPatternId))
+            {
+                return null;
+            }
+
+            return allowSingleKindFallback && fallbackCount == 1 ? fallbackPattern : null;
         }
 
         private static string BuildRangedPhraseFrameKey(ChartEventData eventData)
@@ -720,7 +974,21 @@ namespace KalBeat.Charting
             string phraseId = string.IsNullOrWhiteSpace(eventData.RangedPhraseId)
                 ? $"step:{eventData.StepIndex}"
                 : eventData.RangedPhraseId;
-            return $"{eventData.Lane}:{phraseId}";
+            return $"{eventData.Lane}:{(int)eventData.Kind}:{phraseId}";
+        }
+
+        private static string BuildRangedCuePairKey(ChartEventData eventData)
+        {
+            string phraseId = string.IsNullOrWhiteSpace(eventData.RangedPhraseId)
+                ? $"step:{eventData.StepIndex}"
+                : eventData.RangedPhraseId;
+            return $"{eventData.Lane}:{(int)eventData.Kind}:{phraseId}:{eventData.RangedCueIndex}";
+        }
+
+        private static bool IsRangedPhraseKind(CombatEventKind kind)
+        {
+            return kind == CombatEventKind.RangedThreatDodgeOnly ||
+                   kind == CombatEventKind.RangedThreatCounterable;
         }
 
         private static int CompareEvents(ChartEventData left, ChartEventData right)
@@ -778,23 +1046,15 @@ namespace KalBeat.Charting
             public float ResponseBandUnits { get; }
         }
 
-        private struct RangedPhraseTiming
+        private readonly struct RangedPhraseSettings
         {
-            public bool HasFirstReadyBeat;
-            public float FirstReadyBeat;
-            public bool HasFirstTimingBeat;
-            public float FirstTimingBeat;
-        }
-
-        private readonly struct RangedDodgeSettings
-        {
-            public static readonly RangedDodgeSettings Default = new RangedDodgeSettings(
+            public static readonly RangedPhraseSettings Default = new RangedPhraseSettings(
                 DefaultRangedDodgeMoveUnits,
                 DefaultRangedDodgeBandUnits,
                 DefaultRangedResponseOffsetBeats,
                 true);
 
-            public RangedDodgeSettings(
+            public RangedPhraseSettings(
                 float dodgeMoveUnits,
                 float responseBandUnits,
                 float responseOffsetBeats,

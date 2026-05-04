@@ -13,6 +13,7 @@ namespace KalBeat.Combat
         [SerializeField] private string displayName = "Pattern 1";
         [SerializeField] private CombatEventKind combatKind = CombatEventKind.MeleeThreatDodgeOnly;
         [SerializeField] private float entryBandUnits = 4f;
+        [SerializeField] private string readyCueEventPath = string.Empty;
         [SerializeField] private int rangedCueCount = 8;
         [SerializeField] private int rangedAnchorCount = 8;
         [SerializeField] private float rangedCueIntervalBeats = 0.5f;
@@ -20,6 +21,10 @@ namespace KalBeat.Combat
         [SerializeField] private float rangedDodgeMoveUnits = 4f;
         [SerializeField] private float rangedResponseBandUnits = 4f;
         [SerializeField] private bool autoMovePlayerToResponseBand = true;
+        [SerializeField] private GameObject projectilePrefab;
+        [SerializeField] private string projectileFrontTipName = "FrontTip";
+        [SerializeField] private float projectileTravelUnits = 1f;
+        [SerializeField] private float projectileTravelDurationSec = 0.2f;
         [SerializeField] private List<PatternStepDefinition> steps = new List<PatternStepDefinition>();
 
         public string PatternId
@@ -47,6 +52,12 @@ namespace KalBeat.Combat
         }
 
         public List<PatternStepDefinition> Steps => steps;
+
+        public string ReadyCueEventPath
+        {
+            get => readyCueEventPath;
+            set => readyCueEventPath = value;
+        }
 
         public int RangedCueCount
         {
@@ -90,18 +101,47 @@ namespace KalBeat.Combat
             set => autoMovePlayerToResponseBand = value;
         }
 
+        public GameObject ProjectilePrefab
+        {
+            get => projectilePrefab;
+            set => projectilePrefab = value;
+        }
+
+        public string ProjectileFrontTipName
+        {
+            get => projectileFrontTipName;
+            set => projectileFrontTipName = value;
+        }
+
+        public float ProjectileTravelUnits
+        {
+            get => projectileTravelUnits;
+            set => projectileTravelUnits = value;
+        }
+
+        public float ProjectileTravelDurationSec
+        {
+            get => projectileTravelDurationSec;
+            set => projectileTravelDurationSec = value;
+        }
+
         public string BuildSyncSignature()
         {
             StringBuilder builder = new StringBuilder(256);
             builder.Append((int)combatKind).Append('|')
                 .Append(entryBandUnits.ToString("R")).Append('|')
+                .Append(readyCueEventPath).Append('|')
                 .Append(rangedCueCount).Append('|')
                 .Append(rangedAnchorCount).Append('|')
                 .Append(rangedCueIntervalBeats.ToString("R")).Append('|')
                 .Append(rangedResponseOffsetBeats.ToString("R")).Append('|')
                 .Append(rangedDodgeMoveUnits.ToString("R")).Append('|')
                 .Append(rangedResponseBandUnits.ToString("R")).Append('|')
-                .Append(autoMovePlayerToResponseBand).Append('|');
+                .Append(autoMovePlayerToResponseBand).Append('|')
+                .Append(projectilePrefab != null ? projectilePrefab.name : "null").Append('|')
+                .Append(projectileFrontTipName).Append('|')
+                .Append(projectileTravelUnits.ToString("R")).Append('|')
+                .Append(projectileTravelDurationSec.ToString("R")).Append('|');
 
             List<PatternStepDefinition> orderedSteps = new List<PatternStepDefinition>();
             if (steps != null)
@@ -147,6 +187,13 @@ namespace KalBeat.Combat
             rangedResponseOffsetBeats = Mathf.Max(0.001f, rangedResponseOffsetBeats);
             rangedDodgeMoveUnits = Mathf.Max(0f, rangedDodgeMoveUnits);
             rangedResponseBandUnits = Mathf.Max(0.001f, rangedResponseBandUnits);
+            if (string.IsNullOrWhiteSpace(projectileFrontTipName))
+            {
+                projectileFrontTipName = "FrontTip";
+            }
+
+            projectileTravelUnits = Mathf.Max(0.001f, projectileTravelUnits);
+            projectileTravelDurationSec = Mathf.Max(0.001f, projectileTravelDurationSec);
 
             for (int i = 0; i < steps.Count; i++)
             {

@@ -16,11 +16,12 @@ MonoBehaviour:
   displayName: Boar Ranged Dodge Beam 01
   combatKind: 6
   entryBandUnits: 4
+  readyCueEventPath: event:/preview/finger_snap
   rangedCueCount: 8
   rangedAnchorCount: 8
   rangedCueIntervalBeats: 0.5
-  rangedResponseOffsetBeats: 6
+  rangedResponseOffsetBeats: 4
   rangedDodgeMoveUnits: 2
-  rangedResponseBandUnits: 4
+  rangedResponseBandUnits: 6
   autoMovePlayerToResponseBand: 1
   steps: []

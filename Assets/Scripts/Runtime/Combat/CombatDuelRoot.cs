@@ -94,12 +94,29 @@ namespace KalBeat.Combat
                    (transform.forward * (localPositionUnits.y * unitSize));
         }
 
+        public Vector3 ConvertDuelLocal3DToWorld(Vector3 localPositionUnits)
+        {
+            return transform.position +
+                   (transform.right * (localPositionUnits.x * unitSize)) +
+                   (transform.up * (localPositionUnits.y * unitSize)) +
+                   (transform.forward * (localPositionUnits.z * unitSize));
+        }
+
         public Vector2 ConvertWorldToDuelLocalUnits(Vector3 worldPosition)
         {
             Vector3 localOffset = worldPosition - transform.position;
             float localXUnits = Vector3.Dot(localOffset, transform.right) / unitSize;
             float localYUnits = Vector3.Dot(localOffset, transform.forward) / unitSize;
             return new Vector2(localXUnits, localYUnits);
+        }
+
+        public Vector3 ConvertWorldToDuelLocal3DUnits(Vector3 worldPosition)
+        {
+            Vector3 localOffset = worldPosition - transform.position;
+            float localXUnits = Vector3.Dot(localOffset, transform.right) / unitSize;
+            float localYUnits = Vector3.Dot(localOffset, transform.up) / unitSize;
+            float localZUnits = Vector3.Dot(localOffset, transform.forward) / unitSize;
+            return new Vector3(localXUnits, localYUnits, localZUnits);
         }
 
         public Vector3 GetCurrentDuelForward()
