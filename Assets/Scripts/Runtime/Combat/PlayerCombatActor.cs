@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using KalBeat.Charting;
 
@@ -16,6 +17,7 @@ namespace KalBeat.Combat
         [SerializeField] private float missArcHeightPerUnit = 0.18f;
         [SerializeField] private float missArcHeightMin = 0.35f;
         [SerializeField] private float missArcHeightMax = 1.4f;
+        [SerializeField] private Transform shootPoint;
         [SerializeField] private AnimationCurve missArcCurve = new AnimationCurve(
             new Keyframe(0f, 0f),
             new Keyframe(0.35f, 1f),
@@ -23,13 +25,24 @@ namespace KalBeat.Combat
 
         private CombatDuelRoot duelRoot;
         private Coroutine activeMoveRoutine;
+        private readonly List<GameObject> activeRangedProjectiles = new List<GameObject>();
+        private readonly List<Coroutine> activeRangedProjectileRoutines = new List<Coroutine>();
 
         public bool IsMoving => activeMoveRoutine != null;
+        public Transform ShootPoint
+        {
+            get
+            {
+                TryAssignShootPoint();
+                return shootPoint;
+            }
+        }
 
         public void InitializeCombat(CombatDuelRoot root)
         {
             duelRoot = root;
             TryAssignRenderer();
+            TryAssignShootPoint();
             ApplyColor(defaultColor);
         }
 
@@ -41,6 +54,8 @@ namespace KalBeat.Combat
                 activeMoveRoutine = null;
             }
 
+            DestroyActiveRangedProjectiles();
+
             if (duelRoot != null)
             {
                 transform.position = duelRoot.GetPlayerBaseWorldPosition();
@@ -48,6 +63,75 @@ namespace KalBeat.Combat
 
             ApplyColor(defaultColor);
             duelRoot?.RefreshActorFacing();
+        }
+
+        public void FireRangedAttack(PlayerAttackDefinition attackDefinition, Transform targetPoint)
+        {
+            if (attackDefinition == null)
+            {
+                Debug.LogWarning("Player ranged attack definition is missing.", this);
+                return;
+            }
+
+            if (attackDefinition.ProjectilePrefab == null)
+            {
+                Debug.LogWarning($"Player attack '{attackDefinition.DisplayName}' is missing ProjectilePrefab.", this);
+                return;
+            }
+
+            Transform resolvedShootPoint = ShootPoint;
+            if (resolvedShootPoint == null)
+            {
+                Debug.LogWarning($"{name} is missing ShootPoint. Add a child GameObject named ShootPoint under the player.", this);
+                return;
+            }
+
+            if (targetPoint == null)
+            {
+                Debug.LogWarning("Player ranged attack target is missing. Add a child GameObject named HitPoint under the monster.", this);
+                return;
+            }
+
+            Vector3 spawnPosition = resolvedShootPoint.position;
+            Vector3 contactPosition = targetPoint.position;
+            Vector3 direction = contactPosition - spawnPosition;
+            if (direction.sqrMagnitude <= 0.0001f)
+            {
+                Debug.LogWarning("Player ranged attack has no travel distance.", this);
+                return;
+            }
+
+            direction.Normalize();
+            GameObject projectileObject = Instantiate(attackDefinition.ProjectilePrefab, spawnPosition, Quaternion.identity);
+            projectileObject.transform.forward = direction;
+
+            Transform frontTip = FindChildByName(projectileObject.transform, attackDefinition.ProjectileFrontTipName);
+            if (frontTip == null)
+            {
+                Debug.LogWarning(
+                    $"Player projectile prefab '{attackDefinition.ProjectilePrefab.name}' must contain '{attackDefinition.ProjectileFrontTipName}'.",
+                    this);
+                Destroy(projectileObject);
+                return;
+            }
+
+            float frontOffsetWorld = Vector3.Dot(frontTip.position - projectileObject.transform.position, direction);
+            if (frontOffsetWorld <= 0.0001f)
+            {
+                Debug.LogWarning(
+                    $"Player projectile prefab '{attackDefinition.ProjectilePrefab.name}' FrontTip must be placed in front of the projectile root.",
+                    this);
+                Destroy(projectileObject);
+                return;
+            }
+
+            Vector3 targetPivotPosition = contactPosition - (direction * frontOffsetWorld);
+            float unitSize = duelRoot != null ? Mathf.Max(0.0001f, duelRoot.UnitSize) : 1f;
+            float travelUnits = Vector3.Distance(spawnPosition, targetPivotPosition) / unitSize;
+            float durationSec = Mathf.Max(0.0001f, attackDefinition.ResolveTravelDurationSec(travelUnits));
+            Coroutine projectileRoutine = StartCoroutine(RangedProjectileRoutine(projectileObject, spawnPosition, targetPivotPosition, durationSec));
+            activeRangedProjectiles.Add(projectileObject);
+            activeRangedProjectileRoutines.Add(projectileRoutine);
         }
 
         public void PlayHitKnockback(PlayerRelativeDirection directionHint, float moveUnits, float durationSec = -1f)
@@ -109,6 +193,34 @@ namespace KalBeat.Combat
             activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, durationSec, arcHeight));
         }
 
+        private IEnumerator RangedProjectileRoutine(
+            GameObject projectileObject,
+            Vector3 startPosition,
+            Vector3 targetPosition,
+            float durationSec)
+        {
+            float elapsed = 0f;
+            while (elapsed < durationSec)
+            {
+                if (projectileObject == null)
+                {
+                    yield break;
+                }
+
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / durationSec);
+                projectileObject.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                yield return null;
+            }
+
+            if (projectileObject != null)
+            {
+                projectileObject.transform.position = targetPosition;
+                activeRangedProjectiles.Remove(projectileObject);
+                Destroy(projectileObject);
+            }
+        }
+
         private IEnumerator MoveRoutine(Vector3 targetPosition, float durationSec, float arcHeight)
         {
             Vector3 startPosition = transform.position;
@@ -146,12 +258,68 @@ namespace KalBeat.Combat
             return Mathf.Clamp(resolvedArcHeight, missArcHeightMin, missArcHeightMax);
         }
 
+        private void DestroyActiveRangedProjectiles()
+        {
+            for (int i = 0; i < activeRangedProjectileRoutines.Count; i++)
+            {
+                Coroutine routine = activeRangedProjectileRoutines[i];
+                if (routine != null)
+                {
+                    StopCoroutine(routine);
+                }
+            }
+
+            activeRangedProjectileRoutines.Clear();
+
+            for (int i = 0; i < activeRangedProjectiles.Count; i++)
+            {
+                GameObject projectileObject = activeRangedProjectiles[i];
+                if (projectileObject != null)
+                {
+                    Destroy(projectileObject);
+                }
+            }
+
+            activeRangedProjectiles.Clear();
+        }
+
         private void TryAssignRenderer()
         {
             if (bodyRenderer == null)
             {
                 bodyRenderer = GetComponentInChildren<Renderer>();
             }
+        }
+
+        private void TryAssignShootPoint()
+        {
+            if (shootPoint == null)
+            {
+                Transform foundPoint = transform.Find("ShootPoint");
+                if (foundPoint != null)
+                {
+                    shootPoint = foundPoint;
+                }
+            }
+        }
+
+        private static Transform FindChildByName(Transform root, string childName)
+        {
+            if (root == null || string.IsNullOrWhiteSpace(childName))
+            {
+                return null;
+            }
+
+            Transform[] children = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < children.Length; i++)
+            {
+                if (children[i] != null && string.Equals(children[i].name, childName, System.StringComparison.Ordinal))
+                {
+                    return children[i];
+                }
+            }
+
+            return null;
         }
 
         private void ApplyColor(Color color)
@@ -191,6 +359,7 @@ namespace KalBeat.Combat
                 new Keyframe(0.35f, 1f),
                 new Keyframe(1f, 0f));
             TryAssignRenderer();
+            TryAssignShootPoint();
         }
     }
 }

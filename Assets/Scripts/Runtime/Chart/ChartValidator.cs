@@ -33,6 +33,7 @@ namespace KalBeat.Charting
         private const string ErrorCodeRangedReadyCueInvalid = "event.ranged.ready_cue.invalid";
         private const string ErrorCodeRangedPairInvalid = "event.ranged.pair.invalid";
         private const string ErrorCodeRangedPairAnchorMismatch = "event.ranged.pair.anchor_mismatch";
+        private const string ErrorCodePlayerRangedDuplicateInPhrase = "event.player_ranged.duplicate_in_phrase";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
         private const string WarningCodeEventKindNone = "event.kind.none";
         private const string WarningCodeReadyCueMissing = "event.ready_cue.missing";
@@ -100,6 +101,7 @@ namespace KalBeat.Charting
             int safeMaxEventsPerSlot = meta.MaxEventsPerSlot > 0 ? meta.MaxEventsPerSlot : 1;
             var slotCounter = new Dictionary<int, int>();
             var rangedPairs = new Dictionary<string, RangedPairValidationState>(StringComparer.Ordinal);
+            var playerRangedCuesByPhrase = new Dictionary<string, PlayerRangedPhraseValidationState>(StringComparer.Ordinal);
 
             for (int i = 0; i < events.Count; i++)
             {
@@ -143,6 +145,7 @@ namespace KalBeat.Charting
                 if (eventData.Phase == CombatEventPhase.Ready &&
                     eventData.ReadyCueType == ReadyCueType.None &&
                     eventData.Kind != CombatEventKind.PlayerDashAttack &&
+                    eventData.Kind != CombatEventKind.PlayerRangedAttack &&
                     eventData.Kind != CombatEventKind.RangedThreatCounterable &&
                     eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
                 {
@@ -203,6 +206,7 @@ namespace KalBeat.Charting
                 if (IsRangedPhraseKind(eventData.Kind))
                 {
                     ValidateRangedPhraseEvent(result, rangedPairs, eventData, i);
+                    ValidatePlayerRangedPhraseLimit(result, playerRangedCuesByPhrase, eventData, i);
                 }
 
                 if (RequiresDirectionHint(eventData) && eventData.DirectionHint == PlayerRelativeDirection.None)
@@ -331,7 +335,40 @@ namespace KalBeat.Charting
         private static bool IsRangedPhraseKind(CombatEventKind kind)
         {
             return kind == CombatEventKind.RangedThreatDodgeOnly ||
-                   kind == CombatEventKind.RangedThreatCounterable;
+                   kind == CombatEventKind.RangedThreatCounterable ||
+                   kind == CombatEventKind.PlayerRangedAttack;
+        }
+
+        private static void ValidatePlayerRangedPhraseLimit(
+            ChartValidationResult result,
+            Dictionary<string, PlayerRangedPhraseValidationState> playerRangedCuesByPhrase,
+            ChartEventData eventData,
+            int eventIndex)
+        {
+            if (eventData.Kind != CombatEventKind.PlayerRangedAttack ||
+                eventData.Phase != CombatEventPhase.Ready ||
+                string.IsNullOrWhiteSpace(eventData.RangedPhraseId) ||
+                eventData.RangedCueIndex < 0)
+            {
+                return;
+            }
+
+            string phraseKey = $"{eventData.Lane}:{eventData.RangedPhraseId}";
+            if (!playerRangedCuesByPhrase.TryGetValue(phraseKey, out PlayerRangedPhraseValidationState state))
+            {
+                playerRangedCuesByPhrase.Add(
+                    phraseKey,
+                    new PlayerRangedPhraseValidationState(eventIndex, eventData.RangedCueIndex));
+                return;
+            }
+
+            if (state.CueIndex != eventData.RangedCueIndex)
+            {
+                result.AddError(
+                    ErrorCodePlayerRangedDuplicateInPhrase,
+                    "A ranged phrase can contain only one PlayerRangedAttack cue for now.",
+                    eventIndex);
+            }
         }
 
         private sealed class RangedPairValidationState
@@ -346,6 +383,18 @@ namespace KalBeat.Charting
             public int AnchorIndex { get; }
             public int ReadyCount { get; set; }
             public int TimingCount { get; set; }
+        }
+
+        private sealed class PlayerRangedPhraseValidationState
+        {
+            public PlayerRangedPhraseValidationState(int firstEventIndex, int cueIndex)
+            {
+                FirstEventIndex = firstEventIndex;
+                CueIndex = cueIndex;
+            }
+
+            public int FirstEventIndex { get; }
+            public int CueIndex { get; }
         }
     }
 }

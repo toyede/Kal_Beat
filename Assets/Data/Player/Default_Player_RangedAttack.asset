@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28c07a146a5b77b45bda7b1fd433e57e, type: 3}
+  m_Name: Default_Player_RangedAttack
+  m_EditorClassIdentifier: 
+  attackId: default_player_ranged_attack
+  displayName: Default Player Ranged Attack
+  projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
+  projectileFrontTipName: FrontTip
+  projectileTravelUnits: 2
+  projectileTravelDurationSec: 0.1

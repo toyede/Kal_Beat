@@ -14,6 +14,7 @@ namespace KalBeat.Combat
         [SerializeField] private PlayerCombatActor playerActor;
         [SerializeField] private MonsterCombatActor monsterActor;
         [SerializeField] private CombatJudgementSystem judgementSystem;
+        [SerializeField] private PlayerAttackDefinition fallbackPlayerRangedAttackDefinition;
         [SerializeField] private bool playOnStart = true;
         [SerializeField] private string judgementInputCueEventPath = "event:/preview/finger_snap";
         [SerializeField] private bool enableJudgementLogs = true;
@@ -382,6 +383,12 @@ namespace KalBeat.Combat
                 case CombatJudgementGrade.Perfect:
                 case CombatJudgementGrade.Good:
                 case CombatJudgementGrade.Miss:
+                    if (result.ResolvedStep.Kind == CombatEventKind.PlayerRangedAttack)
+                    {
+                        ApplyPlayerRangedAttackJudgement(result);
+                        return;
+                    }
+
                     if (playerActor != null)
                     {
                         playerActor.PlayResolvedReactionMove(
@@ -395,6 +402,30 @@ namespace KalBeat.Combat
             }
         }
 
+        private void ApplyPlayerRangedAttackJudgement(CombatJudgementResult result)
+        {
+            if (playerActor != null)
+            {
+                playerActor.PlayResolvedReactionMove(
+                    result.ResolvedStep.EndPlayerLocalPos,
+                    result.ResolvedStep.PlayerDurationSec,
+                    result.Grade);
+            }
+
+            if (result.Grade == CombatJudgementGrade.Perfect ||
+                result.Grade == CombatJudgementGrade.Good)
+            {
+                playerActor?.FireRangedAttack(ResolvePlayerRangedAttackDefinition(), monsterActor != null ? monsterActor.HitPoint : null);
+            }
+
+            monsterActor?.HandleResolvedJudgement(result.ResolvedStep, result.Grade);
+        }
+
+        private PlayerAttackDefinition ResolvePlayerRangedAttackDefinition()
+        {
+            return fallbackPlayerRangedAttackDefinition;
+        }
+
         private static bool ShouldPlayReadyCue(ResolvedCombatStep resolvedStep)
         {
             return resolvedStep != null &&
@@ -402,6 +433,7 @@ namespace KalBeat.Combat
                    (resolvedStep.ReadyCueType == ReadyCueType.Pose ||
                     resolvedStep.ReadyCueType == ReadyCueType.Move ||
                     resolvedStep.Kind == CombatEventKind.PlayerDashAttack ||
+                    resolvedStep.Kind == CombatEventKind.PlayerRangedAttack ||
                     resolvedStep.Kind == CombatEventKind.RangedThreatCounterable ||
                     resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly);
         }

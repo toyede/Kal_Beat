@@ -38,6 +38,26 @@ namespace KalBeat.Combat
             activeShowRoutine = StartCoroutine(ShowRoutine(durationSec));
         }
 
+        public void ShowPersistent(Color color)
+        {
+            TryAssignRenderer();
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            CacheBaseScale();
+            transform.localScale = baseScale;
+            spriteRenderer.color = color;
+            spriteRenderer.enabled = true;
+
+            if (activeShowRoutine != null)
+            {
+                StopCoroutine(activeShowRoutine);
+                activeShowRoutine = null;
+            }
+        }
+
         public void Hide()
         {
             if (activeShowRoutine != null)

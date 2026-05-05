@@ -589,7 +589,7 @@ MonoBehaviour:
     appliedPatternStepCount: 16
   - beat: 35.5
     lane: 0
-    kind: 6
+    kind: 4
     phase: 0
     stepIndex: 5
     readyCueType: 0
@@ -789,11 +789,11 @@ MonoBehaviour:
     appliedPatternStepCount: 16
   - beat: 39.5
     lane: 0
-    kind: 6
+    kind: 4
     phase: 1
     stepIndex: 13
     readyCueType: 0
-    directionHint: 2
+    directionHint: 0
     nudgeMs: 0
     movementResolveMode: 0
     moveUnits: 0
@@ -939,7 +939,7 @@ MonoBehaviour:
     appliedPatternStepCount: 16
   - beat: 44.5
     lane: 0
-    kind: 5
+    kind: 4
     phase: 0
     stepIndex: 3
     readyCueType: 0
@@ -1139,7 +1139,7 @@ MonoBehaviour:
     appliedPatternStepCount: 16
   - beat: 48.5
     lane: 0
-    kind: 5
+    kind: 4
     phase: 1
     stepIndex: 11
     readyCueType: 0
@@ -1264,7 +1264,7 @@ MonoBehaviour:
     appliedPatternStepCount: 16
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: b3323bb897d3bf182383cbe004f485b0
+    sourceSignature: c1086ef53674bfd10165910b22fae338
     isValid: 1
     invalidReason: 
     steps:
@@ -2174,7 +2174,7 @@ MonoBehaviour:
       monsterDefinitionSignature: b79263541920e4e4d37665ce853240a1
       sourceBeat: 35.5
       lane: 0
-      kind: 6
+      kind: 4
       phase: 0
       stepIndex: 5
       readyCueType: 0
@@ -2502,12 +2502,12 @@ MonoBehaviour:
       monsterDefinitionSignature: b79263541920e4e4d37665ce853240a1
       sourceBeat: 39.5
       lane: 0
-      kind: 6
+      kind: 4
       phase: 1
       stepIndex: 13
       readyCueType: 0
       readyCueEventPath: 
-      playerDirectionHint: 2
+      playerDirectionHint: 0
       movementResolveMode: 0
       moveUnits: 0
       targetBandUnits: 0
@@ -2518,14 +2518,14 @@ MonoBehaviour:
       playerStartSec: 21.649456
       playerDurationSec: 0
       startPlayerLocalPos: {x: -6.2154, y: -6.4789557}
-      endPlayerLocalPos: {x: -2.873938, y: -8.574234}
+      endPlayerLocalPos: {x: -4.721753, y: -7.8090005}
       startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
       endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
       playerApproachLocalPos: {x: -6.2154, y: -6.4789557}
       lockedPlayerLocalPos: {x: -6.2154, y: -6.4789557}
       monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
       entryBandUnits: 5.9999995
-      exitBandUnits: 5.9999995
+      exitBandUnits: 6.0000005
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
       rangedPhraseId: f427550bfc6a4ba7a7a495108d855258
@@ -2558,14 +2558,14 @@ MonoBehaviour:
       monsterDurationSec: 0
       playerStartSec: 21.922182
       playerDurationSec: 0
-      startPlayerLocalPos: {x: -2.873938, y: -8.574234}
+      startPlayerLocalPos: {x: -4.721753, y: -7.8090005}
       endPlayerLocalPos: {x: -6.2154, y: -6.4789557}
       startMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
       endMonsterLocalPos: {x: -1.5342531, y: -2.7257094}
-      playerApproachLocalPos: {x: -2.873938, y: -8.574234}
-      lockedPlayerLocalPos: {x: -2.873938, y: -8.574234}
+      playerApproachLocalPos: {x: -4.721753, y: -7.8090005}
+      lockedPlayerLocalPos: {x: -4.721753, y: -7.8090005}
       monsterApproachLocalPos: {x: -1.5342531, y: -2.7257094}
-      entryBandUnits: 5.9999995
+      entryBandUnits: 6.0000005
       exitBandUnits: 5.9999995
       playerKnockbackUnits: 0
       monsterKnockbackUnits: 0
@@ -2656,10 +2656,10 @@ MonoBehaviour:
       rangedAnchorIndex: 0
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.077337, y: 0.6125002, z: -2.8303723}
-      projectileTargetPivotLocalPos: {x: -2.3983893, y: 0.0033656955, z: -6.5432563}
+      projectileSpawnLocalPos: {x: -1.077337, y: 0.9274998, z: -2.8303723}
+      projectileTargetPivotLocalPos: {x: -2.398809, y: 0.009837804, z: -6.5444355}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 25.62098
+      projectileLaunchSec: 25.617987
       projectileContactSec: 25.820364
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -2697,10 +2697,10 @@ MonoBehaviour:
       rangedAnchorIndex: 1
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.3819478, y: 0.6125002, z: -2.760597}
-      projectileTargetPivotLocalPos: {x: -2.4047966, y: 0.003444992, z: -6.541266}
+      projectileSpawnLocalPos: {x: -1.3819478, y: 0.9274998, z: -2.760597}
+      projectileTargetPivotLocalPos: {x: -2.4051273, y: 0.009952087, z: -6.542488}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 25.894909
+      projectileLaunchSec: 25.8919
       projectileContactSec: 26.093092
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -2738,17 +2738,17 @@ MonoBehaviour:
       rangedAnchorIndex: 2
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.6865585, y: 0.6125002, z: -2.690822}
-      projectileTargetPivotLocalPos: {x: -2.4113758, y: 0.003444992, z: -6.539759}
+      projectileSpawnLocalPos: {x: -1.6865585, y: 0.9274998, z: -2.690822}
+      projectileTargetPivotLocalPos: {x: -2.4116101, y: 0.009952087, z: -6.541003}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 26.167635
+      projectileLaunchSec: 26.164625
       projectileContactSec: 26.365818
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
       monsterDefinitionSignature: b79263541920e4e4d37665ce853240a1
       sourceBeat: 44.5
       lane: 0
-      kind: 5
+      kind: 4
       phase: 0
       stepIndex: 3
       readyCueType: 0
@@ -2777,14 +2777,14 @@ MonoBehaviour:
       rangedPhraseId: 5d628de75c0746819628c291815b00a0
       rangedCueIndex: 3
       rangedAnchorIndex: 3
-      hasProjectileData: 1
-      projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.9911692, y: 0.6125002, z: -2.6210465}
-      projectileTargetPivotLocalPos: {x: -2.4180105, y: 0.0033656955, z: -6.538762}
-      projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 26.439161
-      projectileContactSec: 26.638546
-      projectileFrontOffsetUnits: 0.0875
+      hasProjectileData: 0
+      projectilePrefab: {fileID: 0}
+      projectileSpawnLocalPos: {x: 0, y: 0, z: 0}
+      projectileTargetPivotLocalPos: {x: 0, y: 0, z: 0}
+      projectileContactLocalPos: {x: 0, y: 0, z: 0}
+      projectileLaunchSec: 0
+      projectileContactSec: 0
+      projectileFrontOffsetUnits: 0
     - monsterId: boar
       monsterDefinitionSignature: b79263541920e4e4d37665ce853240a1
       sourceBeat: 45
@@ -2820,10 +2820,10 @@ MonoBehaviour:
       rangedAnchorIndex: 4
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.077337, y: 0.8374996, z: -2.8303723}
-      projectileTargetPivotLocalPos: {x: -2.3986738, y: 0.008018196, z: -6.544056}
+      projectileSpawnLocalPos: {x: -1.077337, y: 1.1525002, z: -2.8303723}
+      projectileTargetPivotLocalPos: {x: -2.3991957, y: 0.014265941, z: -6.5455227}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 26.70987
+      projectileLaunchSec: 26.706059
       projectileContactSec: 26.911274
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -2861,10 +2861,10 @@ MonoBehaviour:
       rangedAnchorIndex: 5
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.3819478, y: 0.8374996, z: -2.760597}
-      projectileTargetPivotLocalPos: {x: -2.4050207, y: 0.008122988, z: -6.5420947}
+      projectileSpawnLocalPos: {x: -1.3819478, y: 1.1525002, z: -2.760597}
+      projectileTargetPivotLocalPos: {x: -2.4054317, y: 0.014401941, z: -6.543614}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 26.983786
+      projectileLaunchSec: 26.979954
       projectileContactSec: 27.184
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -2902,10 +2902,10 @@ MonoBehaviour:
       rangedAnchorIndex: 6
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.6865585, y: 0.8374996, z: -2.690822}
-      projectileTargetPivotLocalPos: {x: -2.4115345, y: 0.008122988, z: -6.540602}
+      projectileSpawnLocalPos: {x: -1.6865585, y: 1.1525002, z: -2.690822}
+      projectileTargetPivotLocalPos: {x: -2.411826, y: 0.014401941, z: -6.542149}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 27.256514
+      projectileLaunchSec: 27.252682
       projectileContactSec: 27.456728
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -2943,10 +2943,10 @@ MonoBehaviour:
       rangedAnchorIndex: 7
       hasProjectileData: 1
       projectilePrefab: {fileID: 5233322415278540991, guid: 880756b9d8d510c4e981f624dc983264, type: 3}
-      projectileSpawnLocalPos: {x: -1.9911692, y: 0.8374996, z: -2.6210465}
-      projectileTargetPivotLocalPos: {x: -2.4181025, y: 0.008018196, z: -6.539605}
+      projectileSpawnLocalPos: {x: -1.9911692, y: 1.1525002, z: -2.6210465}
+      projectileTargetPivotLocalPos: {x: -2.418271, y: 0.014265941, z: -6.541153}
       projectileContactLocalPos: {x: -2.4273765, y: -0.010000229, z: -6.6247263}
-      projectileLaunchSec: 27.528051
+      projectileLaunchSec: 27.52424
       projectileContactSec: 27.729456
       projectileFrontOffsetUnits: 0.0875
     - monsterId: boar
@@ -3076,7 +3076,7 @@ MonoBehaviour:
       monsterDefinitionSignature: b79263541920e4e4d37665ce853240a1
       sourceBeat: 48.5
       lane: 0
-      kind: 5
+      kind: 4
       phase: 1
       stepIndex: 11
       readyCueType: 0

@@ -7,6 +7,7 @@ namespace KalBeat.Combat
     {
         [SerializeField] private Color poseColor = new Color(0.95f, 0.65f, 0.2f, 1f);
         [SerializeField] private Color dashColor = new Color(0.95f, 0.3f, 0.3f, 1f);
+        [SerializeField] private Color playerRangedMarkColor = new Color(0.15f, 0.9f, 1f, 1f);
         [SerializeField] private float dashUnits = 4f;
         [SerializeField] private float dashDurationSec = 0.18f;
         [SerializeField] private RangedAttackVisualView rangedAttackVisualView;
@@ -21,6 +22,12 @@ namespace KalBeat.Combat
             if (eventData.Kind == CombatEventKind.PlayerDashAttack)
             {
                 ShowReadyMark();
+                return;
+            }
+
+            if (eventData.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                ShowPersistentReadyMark(playerRangedMarkColor);
                 return;
             }
 
@@ -43,6 +50,11 @@ namespace KalBeat.Combat
                 return;
             }
 
+            if (eventData.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                return;
+            }
+
             if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                 eventData.Kind != CombatEventKind.MeleeThreatCounterable)
             {
@@ -58,6 +70,12 @@ namespace KalBeat.Combat
             if (resolvedStep.Kind == CombatEventKind.PlayerDashAttack)
             {
                 ShowReadyMark();
+                return;
+            }
+
+            if (resolvedStep.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                ShowPersistentReadyMark(playerRangedMarkColor);
                 return;
             }
 
@@ -114,6 +132,11 @@ namespace KalBeat.Combat
                 return;
             }
 
+            if (resolvedStep.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                return;
+            }
+
             if (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly)
             {
                 TryAssignRangedAttackVisualView();
@@ -149,6 +172,12 @@ namespace KalBeat.Combat
 
         protected override void HandleResolvedJudgementResult(ResolvedCombatStep resolvedStep, CombatJudgementGrade grade)
         {
+            if (resolvedStep.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                HideReadyMark();
+                return;
+            }
+
             if (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable)
             {
                 TryAssignRangedAttackVisualView();

@@ -154,6 +154,7 @@ MonoBehaviour:
   playerActor: {fileID: 1177522445}
   monsterActor: {fileID: 1861207940}
   judgementSystem: {fileID: 106852569}
+  fallbackPlayerRangedAttackDefinition: {fileID: 11400000, guid: 98b2e2ba57653144abf3d4f019035973, type: 2}
   playOnStart: 1
   judgementInputCueEventPath: event:/preview/finger_snap
   enableJudgementLogs: 1
@@ -188,6 +189,37 @@ MonoBehaviour:
   perfectWindowMs: 35
   goodWindowMs: 80
   missWindowMs: 130
+--- !u!1 &214287670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 214287671}
+  m_Layer: 0
+  m_Name: HitPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &214287671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 214287670}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.19, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1861207944}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &241998465
 GameObject:
   m_ObjectHideFlags: 0
@@ -402,6 +434,7 @@ MonoBehaviour:
   missArcHeightPerUnit: 0.18
   missArcHeightMin: 0.35
   missArcHeightMax: 10
+  shootPoint: {fileID: 1369002391}
   missArcCurve:
     serializedVersion: 2
     m_Curve:
@@ -525,6 +558,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 829550444}
+  - {fileID: 1369002391}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1177522450
@@ -541,6 +575,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nonRigidbodyVelocity: 0
   attenuationObject: {fileID: 0}
+--- !u!1 &1369002390
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1369002391}
+  m_Layer: 0
+  m_Name: ShootPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1369002391
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1369002390}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.2, z: 0.72}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1177522449}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1388183338
 GameObject:
   m_ObjectHideFlags: 0
@@ -896,7 +961,7 @@ Transform:
   m_GameObject: {fileID: 1664296788}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 1.26, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1064,11 +1129,13 @@ MonoBehaviour:
   definition: {fileID: 11400000, guid: 2bdbde02929facc41970269eec09e984, type: 2}
   bodyRenderer: {fileID: 0}
   attackMarkAnchor: {fileID: 653801643}
+  hitPoint: {fileID: 214287671}
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   readyMarkColor: {r: 1, g: 1, b: 1, a: 1}
   readyMarkDurationSec: 0.15
   poseColor: {r: 0.95, g: 0.65, b: 0.2, a: 1}
   dashColor: {r: 0.95, g: 0.3, b: 0.3, a: 1}
+  playerRangedMarkColor: {r: 0.15, g: 0.9, b: 1, a: 1}
   dashUnits: 4
   dashDurationSec: 0.18
   rangedAttackVisualView: {fileID: 1861207945}
@@ -1161,6 +1228,7 @@ Transform:
   m_Children:
   - {fileID: 653801643}
   - {fileID: 1664296789}
+  - {fileID: 214287671}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1861207945

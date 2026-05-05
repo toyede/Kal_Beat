@@ -8,7 +8,7 @@ namespace KalBeat.Charting
 {
     public static class ChartResolvedTimelineBuilder
     {
-        private const string ResolverVersion = "ranged-counter-projectile-v1";
+        private const string ResolverVersion = "player-ranged-attack-v1";
         private const float DefaultMeleeDodgeResolveUnits = 4f;
         private const float DefaultRangedDodgeMoveUnits = 4f;
         private const float DefaultRangedDodgeBandUnits = 4f;
@@ -83,7 +83,7 @@ namespace KalBeat.Charting
                         .Append(eventData.AppliedPatternId).Append(':')
                         .Append(eventData.AppliedPatternSignature);
 
-                    if (IsRangedPhraseKind(eventData.Kind))
+                    if (IsRangedCueKind(eventData.Kind))
                     {
                         builder.Append(':')
                             .Append(eventData.RangedPhraseId).Append(':')
@@ -216,7 +216,7 @@ namespace KalBeat.Charting
                 PatternDefinition appliedPatternDefinition = ResolvePatternDefinition(
                     monsterDefinition,
                     eventData,
-                    IsRangedPhraseKind(eventData.Kind));
+                    IsRangedCueKind(eventData.Kind));
 
                 if (!TryResolveReadyCueEventPath(
                         eventData,
@@ -266,7 +266,7 @@ namespace KalBeat.Charting
                 RangedPhraseSettings rangedPhraseSettings = ResolveRangedPhraseSettings(appliedPatternDefinition);
                 RangedPhraseFrame rangedPhraseFrame = default;
                 bool isNewRangedPhraseFrame = false;
-                bool hasRangedPhraseFrame = IsRangedPhraseKind(eventData.Kind) &&
+                bool hasRangedPhraseFrame = IsRangedCueKind(eventData.Kind) &&
                                             TryGetRangedPhraseFrame(
                                                 rangedPhraseFrames,
                                                 eventData,
@@ -304,7 +304,7 @@ namespace KalBeat.Charting
                                 return false;
                             }
                         }
-                        else if (IsRangedPhraseKind(eventData.Kind) &&
+                        else if (IsRangedCueKind(eventData.Kind) &&
                                  hasRangedPhraseFrame &&
                                  isNewRangedPhraseFrame &&
                                  rangedPhraseSettings.AutoMovePlayerToResponseBand)
@@ -357,11 +357,12 @@ namespace KalBeat.Charting
                         if (eventData.Kind != CombatEventKind.MeleeThreatDodgeOnly &&
                             eventData.Kind != CombatEventKind.MeleeThreatCounterable &&
                             eventData.Kind != CombatEventKind.PlayerDashAttack &&
+                            eventData.Kind != CombatEventKind.PlayerRangedAttack &&
                             eventData.Kind != CombatEventKind.RangedThreatCounterable &&
                             eventData.Kind != CombatEventKind.RangedThreatDodgeOnly)
                         {
                             errorMessage =
-                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}, {CombatEventKind.MeleeThreatCounterable}, {CombatEventKind.PlayerDashAttack}, {CombatEventKind.RangedThreatCounterable}, and {CombatEventKind.RangedThreatDodgeOnly}.";
+                                $"ResolvedTimeline currently supports only {CombatEventKind.MeleeThreatDodgeOnly}, {CombatEventKind.MeleeThreatCounterable}, {CombatEventKind.PlayerDashAttack}, {CombatEventKind.PlayerRangedAttack}, {CombatEventKind.RangedThreatCounterable}, and {CombatEventKind.RangedThreatDodgeOnly}.";
                             chart.ResolvedTimeline.SetInvalid(errorMessage);
                             return false;
                         }
@@ -413,6 +414,15 @@ namespace KalBeat.Charting
                                 rangedPhraseSettings.DodgeMoveUnits);
                         }
                         else if (eventData.Kind == CombatEventKind.RangedThreatCounterable)
+                        {
+                            endPlayerLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponsePlayerLocalPosition
+                                : currentPlayerLocalPosition;
+                            endMonsterLocalPosition = hasRangedPhraseFrame
+                                ? rangedPhraseFrame.ResponseMonsterLocalPosition
+                                : currentMonsterLocalPosition;
+                        }
+                        else if (eventData.Kind == CombatEventKind.PlayerRangedAttack)
                         {
                             endPlayerLocalPosition = hasRangedPhraseFrame
                                 ? rangedPhraseFrame.ResponsePlayerLocalPosition
@@ -910,6 +920,7 @@ namespace KalBeat.Charting
                    (eventData.ReadyCueType == ReadyCueType.Pose ||
                     eventData.ReadyCueType == ReadyCueType.Move ||
                     eventData.Kind == CombatEventKind.PlayerDashAttack ||
+                    eventData.Kind == CombatEventKind.PlayerRangedAttack ||
                     eventData.Kind == CombatEventKind.RangedThreatCounterable ||
                     eventData.Kind == CombatEventKind.RangedThreatDodgeOnly);
         }
@@ -943,7 +954,7 @@ namespace KalBeat.Charting
             for (int i = 0; i < monsterDefinition.SupportedPatterns.Count; i++)
             {
                 PatternDefinition patternDefinition = monsterDefinition.SupportedPatterns[i];
-                if (patternDefinition == null || patternDefinition.CombatKind != eventData.Kind)
+                if (patternDefinition == null || !IsPatternCompatibleWithEvent(patternDefinition, eventData.Kind))
                 {
                     continue;
                 }
@@ -971,10 +982,12 @@ namespace KalBeat.Charting
 
         private static string BuildRangedPhraseFrameKey(ChartEventData eventData)
         {
-            string phraseId = string.IsNullOrWhiteSpace(eventData.RangedPhraseId)
-                ? $"step:{eventData.StepIndex}"
-                : eventData.RangedPhraseId;
-            return $"{eventData.Lane}:{(int)eventData.Kind}:{phraseId}";
+            string phraseId = !string.IsNullOrWhiteSpace(eventData.AppliedPatternInstanceId)
+                ? eventData.AppliedPatternInstanceId
+                : string.IsNullOrWhiteSpace(eventData.RangedPhraseId)
+                    ? $"step:{eventData.StepIndex}"
+                    : eventData.RangedPhraseId;
+            return $"{eventData.Lane}:{phraseId}";
         }
 
         private static string BuildRangedCuePairKey(ChartEventData eventData)
@@ -989,6 +1002,27 @@ namespace KalBeat.Charting
         {
             return kind == CombatEventKind.RangedThreatDodgeOnly ||
                    kind == CombatEventKind.RangedThreatCounterable;
+        }
+
+        private static bool IsRangedCueKind(CombatEventKind kind)
+        {
+            return IsRangedPhraseKind(kind) ||
+                   kind == CombatEventKind.PlayerRangedAttack;
+        }
+
+        private static bool IsPatternCompatibleWithEvent(PatternDefinition patternDefinition, CombatEventKind eventKind)
+        {
+            if (patternDefinition == null)
+            {
+                return false;
+            }
+
+            if (eventKind == CombatEventKind.PlayerRangedAttack)
+            {
+                return IsRangedPhraseKind(patternDefinition.CombatKind);
+            }
+
+            return patternDefinition.CombatKind == eventKind;
         }
 
         private static int CompareEvents(ChartEventData left, ChartEventData right)

@@ -9,6 +9,7 @@ namespace KalBeat.Combat
         [SerializeField] private MonsterDefinition definition;
         [SerializeField] private Renderer bodyRenderer;
         [SerializeField] private Transform attackMarkAnchor;
+        [SerializeField] private Transform hitPoint;
         [SerializeField] private Color defaultColor = Color.white;
         [SerializeField] private Color readyMarkColor = Color.white;
         [SerializeField] private float readyMarkDurationSec = 0.15f;
@@ -21,12 +22,30 @@ namespace KalBeat.Combat
 
         public MonsterDefinition Definition => definition;
         protected CombatDuelRoot DuelRoot => duelRoot;
+        public Transform AttackMarkAnchor
+        {
+            get
+            {
+                TryAssignAttackMarkAnchor();
+                return attackMarkAnchor;
+            }
+        }
+
+        public Transform HitPoint
+        {
+            get
+            {
+                TryAssignHitPoint();
+                return hitPoint;
+            }
+        }
 
         public void InitializeCombat(CombatDuelRoot root)
         {
             duelRoot = root;
             TryAssignRenderer();
             TryAssignAttackMarkAnchor();
+            TryAssignHitPoint();
             ApplyColor(defaultColor);
         }
 
@@ -109,33 +128,18 @@ namespace KalBeat.Combat
 
         protected void ShowReadyMark()
         {
-            TryAssignAttackMarkAnchor();
-            if (attackMarkAnchor == null)
+            if (TryEnsureReadyMarkView())
             {
-                if (!attackMarkAnchorWarningLogged)
-                {
-                    Debug.LogWarning($"{name} is missing AttackMarkAnchor. Add a child GameObject named AttackMarkAnchor under the monster to show PlayerDashAttack Ready Mark.", this);
-                    attackMarkAnchorWarningLogged = true;
-                }
-
-                return;
+                readyMarkView.Show(readyMarkDurationSec, readyMarkColor);
             }
+        }
 
-            TryAssignReadyMarkView();
-            if (readyMarkView == null)
+        protected void ShowPersistentReadyMark(Color color)
+        {
+            if (TryEnsureReadyMarkView())
             {
-                if (!readyMarkViewWarningLogged)
-                {
-                    Debug.LogWarning(
-                        $"{name} is missing ReadyMarkView under AttackMarkAnchor. Add a child GameObject with SpriteRenderer and CombatReadyMarkView under AttackMarkAnchor to show PlayerDashAttack Ready Mark.",
-                        this);
-                    readyMarkViewWarningLogged = true;
-                }
-
-                return;
+                readyMarkView.ShowPersistent(color);
             }
-
-            readyMarkView.Show(readyMarkDurationSec, readyMarkColor);
         }
 
         protected void HideReadyMark()
@@ -237,6 +241,18 @@ namespace KalBeat.Combat
             }
         }
 
+        private void TryAssignHitPoint()
+        {
+            if (hitPoint == null)
+            {
+                Transform foundPoint = transform.Find("HitPoint");
+                if (foundPoint != null)
+                {
+                    hitPoint = foundPoint;
+                }
+            }
+        }
+
         private void TryAssignReadyMarkView()
         {
             if (readyMarkView != null || attackMarkAnchor == null)
@@ -253,6 +269,37 @@ namespace KalBeat.Combat
             readyMarkView = attackMarkAnchor.GetComponentInChildren<CombatReadyMarkView>(true);
         }
 
+        private bool TryEnsureReadyMarkView()
+        {
+            TryAssignAttackMarkAnchor();
+            if (attackMarkAnchor == null)
+            {
+                if (!attackMarkAnchorWarningLogged)
+                {
+                    Debug.LogWarning($"{name} is missing AttackMarkAnchor. Add a child GameObject named AttackMarkAnchor under the monster to show ready marks.", this);
+                    attackMarkAnchorWarningLogged = true;
+                }
+
+                return false;
+            }
+
+            TryAssignReadyMarkView();
+            if (readyMarkView == null)
+            {
+                if (!readyMarkViewWarningLogged)
+                {
+                    Debug.LogWarning(
+                        $"{name} is missing ReadyMarkView under AttackMarkAnchor. Add a child GameObject with SpriteRenderer and CombatReadyMarkView under AttackMarkAnchor to show ready marks.",
+                        this);
+                    readyMarkViewWarningLogged = true;
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
         private void ApplyColor(Color color)
         {
             if (bodyRenderer == null)
@@ -267,6 +314,7 @@ namespace KalBeat.Combat
         {
             TryAssignRenderer();
             TryAssignAttackMarkAnchor();
+            TryAssignHitPoint();
             readyMarkDurationSec = Mathf.Max(0.01f, readyMarkDurationSec);
         }
     }

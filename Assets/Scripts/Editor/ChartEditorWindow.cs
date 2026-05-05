@@ -800,7 +800,7 @@ namespace KalBeat.Charting.Editor
                 {
                     EditorGUILayout.LabelField(
                         "Ready Cue",
-                        nextKind == CombatEventKind.RangedThreatCounterable ? "Projectile Call" : "Magic Circle Call");
+                        GetRangedReadyCueLabel(nextKind));
                     nextReadyCueType = ReadyCueType.None;
                 }
                 else
@@ -889,6 +889,8 @@ namespace KalBeat.Charting.Editor
             GUILayout.Space(8f);
             DrawPatternPanel();
             GUILayout.Space(8f);
+            DrawRangedCueReplacementPanel();
+            GUILayout.Space(8f);
 
             if (GUILayout.Button("Move Event To Cursor"))
             {
@@ -957,6 +959,35 @@ namespace KalBeat.Charting.Editor
             if (GUILayout.Button("Apply Pattern To Selected Timing"))
             {
                 ApplyPatternToSelectedTiming(selectedPatternDefinition);
+            }
+        }
+
+        private void DrawRangedCueReplacementPanel()
+        {
+            if (selectedEvent == null || currentChart == null || !IsRangedPhraseKind(selectedEvent.Kind))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(selectedEvent.RangedPhraseId) || selectedEvent.RangedCueIndex < 0)
+            {
+                return;
+            }
+
+            GUILayout.Label("Ranged Cue", EditorStyles.boldLabel);
+            if (selectedEvent.Kind == CombatEventKind.PlayerRangedAttack)
+            {
+                if (GUILayout.Button("Restore Cue To Phrase Threat"))
+                {
+                    RestoreSelectedRangedCueToPhraseThreat();
+                }
+
+                return;
+            }
+
+            if (GUILayout.Button("Convert Cue To Player Ranged"))
+            {
+                ConvertSelectedRangedCueToPlayerRangedAttack();
             }
         }
 
@@ -1146,6 +1177,192 @@ namespace KalBeat.Charting.Editor
 
             SortEvents();
             MarkChartDirty();
+        }
+
+        private void ConvertSelectedRangedCueToPlayerRangedAttack()
+        {
+            if (!TryGetSelectedRangedCuePair(out ChartEventData readyEvent, out ChartEventData timingEvent, out string errorMessage))
+            {
+                EditorUtility.DisplayDialog("Player Ranged Cue Failed", errorMessage, "OK");
+                return;
+            }
+
+            if (HasOtherPlayerRangedCueInPhrase(selectedEvent))
+            {
+                EditorUtility.DisplayDialog(
+                    "Player Ranged Cue Failed",
+                    "This ranged phrase already has a PlayerRangedAttack cue. Only one is allowed for now.",
+                    "OK");
+                return;
+            }
+
+            RecordChartChange("Convert Ranged Cue To Player Ranged");
+            ApplyRangedCueKind(readyEvent, CombatEventKind.PlayerRangedAttack);
+            ApplyRangedCueKind(timingEvent, CombatEventKind.PlayerRangedAttack);
+            SortEvents();
+            MarkChartDirty();
+        }
+
+        private void RestoreSelectedRangedCueToPhraseThreat()
+        {
+            if (!TryGetSelectedRangedCuePair(out ChartEventData readyEvent, out ChartEventData timingEvent, out string errorMessage))
+            {
+                EditorUtility.DisplayDialog("Restore Ranged Cue Failed", errorMessage, "OK");
+                return;
+            }
+
+            if (!TryResolveLinkedRangedThreatKind(selectedEvent, out CombatEventKind threatKind, out errorMessage))
+            {
+                EditorUtility.DisplayDialog("Restore Ranged Cue Failed", errorMessage, "OK");
+                return;
+            }
+
+            RecordChartChange("Restore Ranged Cue To Phrase Threat");
+            ApplyRangedCueKind(readyEvent, threatKind);
+            ApplyRangedCueKind(timingEvent, threatKind);
+            SortEvents();
+            MarkChartDirty();
+        }
+
+        private bool TryGetSelectedRangedCuePair(
+            out ChartEventData readyEvent,
+            out ChartEventData timingEvent,
+            out string errorMessage)
+        {
+            readyEvent = null;
+            timingEvent = null;
+            errorMessage = string.Empty;
+
+            if (currentChart == null || currentChart.Events == null || selectedEvent == null)
+            {
+                errorMessage = "Select a ranged cue event first.";
+                return false;
+            }
+
+            if (!IsRangedPhraseKind(selectedEvent.Kind) ||
+                string.IsNullOrWhiteSpace(selectedEvent.RangedPhraseId) ||
+                selectedEvent.RangedCueIndex < 0)
+            {
+                errorMessage = "Selected event is not part of a ranged phrase cue.";
+                return false;
+            }
+
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null ||
+                    !IsRangedPhraseKind(eventData.Kind) ||
+                    eventData.Lane != selectedEvent.Lane ||
+                    eventData.RangedCueIndex != selectedEvent.RangedCueIndex ||
+                    !string.Equals(eventData.RangedPhraseId, selectedEvent.RangedPhraseId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (eventData.Phase == CombatEventPhase.Ready)
+                {
+                    if (readyEvent != null)
+                    {
+                        errorMessage = "Selected ranged cue has duplicate Ready events.";
+                        return false;
+                    }
+
+                    readyEvent = eventData;
+                }
+                else if (eventData.Phase == CombatEventPhase.Timing)
+                {
+                    if (timingEvent != null)
+                    {
+                        errorMessage = "Selected ranged cue has duplicate Timing events.";
+                        return false;
+                    }
+
+                    timingEvent = eventData;
+                }
+            }
+
+            if (readyEvent == null || timingEvent == null)
+            {
+                errorMessage = "Selected ranged cue must have exactly one Ready event and one Timing event.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool HasOtherPlayerRangedCueInPhrase(ChartEventData referenceEvent)
+        {
+            if (currentChart == null || currentChart.Events == null || referenceEvent == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData eventData = currentChart.Events[i];
+                if (eventData == null ||
+                    eventData.Kind != CombatEventKind.PlayerRangedAttack ||
+                    eventData.Phase != CombatEventPhase.Ready ||
+                    eventData.Lane != referenceEvent.Lane ||
+                    eventData.RangedCueIndex == referenceEvent.RangedCueIndex ||
+                    !string.Equals(eventData.RangedPhraseId, referenceEvent.RangedPhraseId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryResolveLinkedRangedThreatKind(
+            ChartEventData eventData,
+            out CombatEventKind threatKind,
+            out string errorMessage)
+        {
+            threatKind = CombatEventKind.None;
+            errorMessage = string.Empty;
+
+            PatternDefinition patternDefinition = FindPatternDefinitionByLink(
+                eventData.AppliedPatternAssetGuid,
+                eventData.AppliedPatternId);
+            if (patternDefinition == null || !IsRangedThreatPatternKind(patternDefinition.CombatKind))
+            {
+                errorMessage = "Selected player ranged cue must keep a link to its original ranged phrase pattern.";
+                return false;
+            }
+
+            threatKind = patternDefinition.CombatKind;
+            return true;
+        }
+
+        private static void ApplyRangedCueKind(ChartEventData eventData, CombatEventKind eventKind)
+        {
+            if (eventData == null)
+            {
+                return;
+            }
+
+            eventData.Kind = eventKind;
+            eventData.ReadyCueType = ReadyCueType.None;
+            eventData.MovementResolveMode = MovementResolveMode.None;
+            eventData.MoveUnits = 0f;
+            eventData.TargetBandUnits = 0f;
+            eventData.MovementDirectionHint = MovementDirectionHint.None;
+            eventData.PlayerKnockbackUnits = 0f;
+            eventData.MonsterKnockbackUnits = 0f;
+
+            if (eventData.Phase == CombatEventPhase.Timing &&
+                eventKind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                eventData.DirectionHint = eventData.DirectionHint == PlayerRelativeDirection.None
+                    ? (eventData.RangedCueIndex % 2 == 0 ? PlayerRelativeDirection.Left : PlayerRelativeDirection.Right)
+                    : eventData.DirectionHint;
+                return;
+            }
+
+            eventData.DirectionHint = PlayerRelativeDirection.None;
         }
 
         private void GenerateRangedDodgePhraseAtCursor(PatternDefinition patternDefinition)
@@ -1660,7 +1877,9 @@ namespace KalBeat.Charting.Editor
             buildContext = null;
             errorMessage = string.Empty;
 
-            if (!ChartContainsEventKind(CombatEventKind.RangedThreatCounterable))
+            bool requiresRangedCounter = ChartContainsEventKind(CombatEventKind.RangedThreatCounterable);
+            bool requiresPlayerRanged = ChartContainsEventKind(CombatEventKind.PlayerRangedAttack);
+            if (!requiresRangedCounter && !requiresPlayerRanged)
             {
                 return true;
             }
@@ -1668,20 +1887,49 @@ namespace KalBeat.Charting.Editor
             CombatDuelRoot duelRoot = UnityEngine.Object.FindFirstObjectByType<CombatDuelRoot>();
             if (duelRoot == null)
             {
-                errorMessage = "RangedThreatCounterable requires CombatDuelRoot in the active scene.";
+                errorMessage = "Ranged attacks require CombatDuelRoot in the active scene.";
                 return false;
             }
 
             if (duelRoot.PlayerActor == null)
             {
-                errorMessage = "RangedThreatCounterable requires PlayerCombatActor on CombatDuelRoot.";
+                errorMessage = "Ranged attacks require PlayerCombatActor on CombatDuelRoot.";
                 return false;
             }
 
             if (duelRoot.MonsterActor == null)
             {
-                errorMessage = "RangedThreatCounterable requires MonsterCombatActor on CombatDuelRoot.";
+                errorMessage = "Ranged attacks require MonsterCombatActor on CombatDuelRoot.";
                 return false;
+            }
+
+            if (requiresPlayerRanged)
+            {
+                Transform shootPoint = FindChildByName(duelRoot.PlayerActor.transform, "ShootPoint");
+                if (shootPoint == null)
+                {
+                    errorMessage = "PlayerRangedAttack requires ShootPoint under the player.";
+                    return false;
+                }
+
+                Transform hitPoint = FindChildByName(duelRoot.MonsterActor.transform, "HitPoint");
+                if (hitPoint == null)
+                {
+                    errorMessage = "PlayerRangedAttack requires HitPoint under the monster.";
+                    return false;
+                }
+
+                Transform attackMarkAnchor = FindChildByName(duelRoot.MonsterActor.transform, "AttackMarkAnchor");
+                if (attackMarkAnchor == null)
+                {
+                    errorMessage = "PlayerRangedAttack requires AttackMarkAnchor under the monster.";
+                    return false;
+                }
+            }
+
+            if (!requiresRangedCounter)
+            {
+                return true;
             }
 
             Transform playerHitAnchor = FindChildByName(duelRoot.PlayerActor.transform, "PlayerHitAnchor");
@@ -1690,6 +1938,8 @@ namespace KalBeat.Charting.Editor
                 errorMessage = "RangedThreatCounterable requires PlayerHitAnchor under the player.";
                 return false;
             }
+
+            float safeUnitSize = Mathf.Max(0.0001f, duelRoot.UnitSize);
 
             Transform rangedAnchorRoot = duelRoot.MonsterActor.transform.Find("RangedAnchorRoot");
             if (rangedAnchorRoot == null)
@@ -1704,7 +1954,6 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            float safeUnitSize = Mathf.Max(0.0001f, duelRoot.UnitSize);
             List<Transform> anchors = new List<Transform>(rangedAnchorRoot.childCount);
             for (int i = 0; i < rangedAnchorRoot.childCount; i++)
             {
@@ -2580,7 +2829,16 @@ namespace KalBeat.Charting.Editor
             menu.AddItem(new GUIContent("Convert/Melee Counterable"), false, () => ConvertSelectedEvent(CombatEventKind.MeleeThreatCounterable));
             menu.AddItem(new GUIContent("Convert/Melee Dodge"), false, () => ConvertSelectedEvent(CombatEventKind.MeleeThreatDodgeOnly));
             menu.AddItem(new GUIContent("Convert/Player Dash"), false, () => ConvertSelectedEvent(CombatEventKind.PlayerDashAttack));
-            menu.AddItem(new GUIContent("Convert/Player Ranged"), false, () => ConvertSelectedEvent(CombatEventKind.PlayerRangedAttack));
+            menu.AddItem(new GUIContent("Convert/Player Ranged"), false, () =>
+            {
+                if (selectedEvent != null && IsRangedPhraseKind(selectedEvent.Kind))
+                {
+                    ConvertSelectedRangedCueToPlayerRangedAttack();
+                    return;
+                }
+
+                ConvertSelectedEvent(CombatEventKind.PlayerRangedAttack);
+            });
             menu.AddItem(new GUIContent("Convert/Ranged Counterable"), false, () => ConvertSelectedEvent(CombatEventKind.RangedThreatCounterable));
             menu.AddItem(new GUIContent("Convert/Ranged Dodge"), false, () => ConvertSelectedEvent(CombatEventKind.RangedThreatDodgeOnly));
         }
@@ -2812,6 +3070,7 @@ namespace KalBeat.Charting.Editor
             }
 
             List<CombatEventKind> combatEventKinds = new List<CombatEventKind> { CombatEventKind.None };
+            bool supportsRangedPhrase = false;
             for (int i = 0; i < monsterDefinition.SupportedPatterns.Count; i++)
             {
                 PatternDefinition patternDefinition = monsterDefinition.SupportedPatterns[i];
@@ -2824,6 +3083,16 @@ namespace KalBeat.Charting.Editor
                 {
                     combatEventKinds.Add(patternDefinition.CombatKind);
                 }
+
+                if (IsRangedThreatPatternKind(patternDefinition.CombatKind))
+                {
+                    supportsRangedPhrase = true;
+                }
+            }
+
+            if (supportsRangedPhrase && !combatEventKinds.Contains(CombatEventKind.PlayerRangedAttack))
+            {
+                combatEventKinds.Add(CombatEventKind.PlayerRangedAttack);
             }
 
             return combatEventKinds.ToArray();
@@ -2908,7 +3177,27 @@ namespace KalBeat.Charting.Editor
         private static bool IsRangedPhraseKind(CombatEventKind combatEventKind)
         {
             return combatEventKind == CombatEventKind.RangedThreatDodgeOnly ||
+                   combatEventKind == CombatEventKind.RangedThreatCounterable ||
+                   combatEventKind == CombatEventKind.PlayerRangedAttack;
+        }
+
+        private static bool IsRangedThreatPatternKind(CombatEventKind combatEventKind)
+        {
+            return combatEventKind == CombatEventKind.RangedThreatDodgeOnly ||
                    combatEventKind == CombatEventKind.RangedThreatCounterable;
+        }
+
+        private static string GetRangedReadyCueLabel(CombatEventKind combatEventKind)
+        {
+            switch (combatEventKind)
+            {
+                case CombatEventKind.RangedThreatCounterable:
+                    return "Projectile Call";
+                case CombatEventKind.PlayerRangedAttack:
+                    return "Player Attack Call";
+                default:
+                    return "Magic Circle Call";
+            }
         }
 
         private static string BuildPatternDescription(PatternDefinition patternDefinition)
@@ -3542,10 +3831,10 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            if (patternDefinition.CombatKind != referenceEvent.Kind)
+            if (!IsRangedThreatPatternKind(patternDefinition.CombatKind))
             {
                 errorMessage =
-                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' no longer matches this phrase kind. Reapply the phrase manually before saving.";
+                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' is not a ranged threat pattern. Reapply the phrase manually before saving.";
                 return false;
             }
 
@@ -3564,7 +3853,7 @@ namespace KalBeat.Charting.Editor
                     continue;
                 }
 
-                if (eventData.Kind != referenceEvent.Kind ||
+                if (!IsAllowedRangedPhraseEventKind(eventData.Kind, patternDefinition.CombatKind) ||
                     eventData.Lane != lane ||
                     !string.Equals(eventData.RangedPhraseId, phraseId, StringComparison.Ordinal))
                 {
@@ -3635,6 +3924,13 @@ namespace KalBeat.Charting.Editor
                     return false;
                 }
 
+                if (callEvent.Kind != timingEvent.Kind)
+                {
+                    errorMessage =
+                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has a cue whose call/response kinds do not match. Convert both events together before saving.";
+                    return false;
+                }
+
                 float callBeat = startBeat + (i * cueIntervalBeats);
                 float responseBeat = callBeat + responseOffsetBeats;
                 int anchorIndex = i % anchorCount;
@@ -3683,10 +3979,16 @@ namespace KalBeat.Charting.Editor
                 float callBeat = startBeat + (i * cueIntervalBeats);
                 float responseBeat = callBeat + responseOffsetBeats;
                 int anchorIndex = i % anchorCount;
+                CombatEventKind callKind = callEvent.Kind == CombatEventKind.PlayerRangedAttack
+                    ? CombatEventKind.PlayerRangedAttack
+                    : patternDefinition.CombatKind;
+                CombatEventKind timingKind = timingEvent.Kind == CombatEventKind.PlayerRangedAttack
+                    ? CombatEventKind.PlayerRangedAttack
+                    : patternDefinition.CombatKind;
 
                 ApplyRangedPhraseEvent(
                     callEvent,
-                    patternDefinition.CombatKind,
+                    callKind,
                     metadata,
                     phraseId,
                     i,
@@ -3699,12 +4001,12 @@ namespace KalBeat.Charting.Editor
                     patternDefinition.EntryBandUnits,
                     callEvent.NudgeMs);
 
-                PlayerRelativeDirection timingDirection = patternDefinition.CombatKind == CombatEventKind.RangedThreatDodgeOnly
+                PlayerRelativeDirection timingDirection = timingKind == CombatEventKind.RangedThreatDodgeOnly
                     ? timingEvent.DirectionHint
                     : PlayerRelativeDirection.None;
                 ApplyRangedPhraseEvent(
                     timingEvent,
-                    patternDefinition.CombatKind,
+                    timingKind,
                     metadata,
                     phraseId,
                     i,
@@ -3731,7 +4033,13 @@ namespace KalBeat.Charting.Editor
 
         private static string BuildRangedAppliedPatternGroupKey(ChartEventData eventData)
         {
-            return $"{eventData.Lane}:{(int)eventData.Kind}:{eventData.AppliedPatternAssetGuid}:{eventData.AppliedPatternId}:{eventData.RangedPhraseId}";
+            return $"{eventData.Lane}:{eventData.AppliedPatternAssetGuid}:{eventData.AppliedPatternId}:{eventData.RangedPhraseId}";
+        }
+
+        private static bool IsAllowedRangedPhraseEventKind(CombatEventKind eventKind, CombatEventKind phraseThreatKind)
+        {
+            return eventKind == phraseThreatKind ||
+                   eventKind == CombatEventKind.PlayerRangedAttack;
         }
 
         private bool TryFindBlockingForeignEvent(
