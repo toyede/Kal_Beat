@@ -15,7 +15,7 @@ MonoBehaviour:
   monsterId: boar
   displayName: Boar
   archetype: 2
-  prefab: {fileID: 0}
+  prefab: {fileID: 8313883942378995498, guid: d1b10a76a6ce17246a5ca817578a7078, type: 3}
   supportsReadyMove: 1
   readyMoveDurationByUnits:
   - units: 2

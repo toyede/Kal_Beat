@@ -24,6 +24,7 @@ namespace KalBeat.Combat
             new Keyframe(1f, 0f));
 
         private CombatDuelRoot duelRoot;
+        private CombatRhythmClock rhythmClock;
         private Coroutine activeMoveRoutine;
         private readonly List<GameObject> activeRangedProjectiles = new List<GameObject>();
         private readonly List<Coroutine> activeRangedProjectileRoutines = new List<Coroutine>();
@@ -38,9 +39,10 @@ namespace KalBeat.Combat
             }
         }
 
-        public void InitializeCombat(CombatDuelRoot root)
+        public void InitializeCombat(CombatDuelRoot root, CombatRhythmClock clock = null)
         {
             duelRoot = root;
+            rhythmClock = clock;
             TryAssignRenderer();
             TryAssignShootPoint();
             ApplyColor(defaultColor);
@@ -129,7 +131,8 @@ namespace KalBeat.Combat
             float unitSize = duelRoot != null ? Mathf.Max(0.0001f, duelRoot.UnitSize) : 1f;
             float travelUnits = Vector3.Distance(spawnPosition, targetPivotPosition) / unitSize;
             float durationSec = Mathf.Max(0.0001f, attackDefinition.ResolveTravelDurationSec(travelUnits));
-            Coroutine projectileRoutine = StartCoroutine(RangedProjectileRoutine(projectileObject, spawnPosition, targetPivotPosition, durationSec));
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            Coroutine projectileRoutine = StartCoroutine(RangedProjectileRoutine(projectileObject, spawnPosition, targetPivotPosition, startSec, durationSec));
             activeRangedProjectiles.Add(projectileObject);
             activeRangedProjectileRoutines.Add(projectileRoutine);
         }
@@ -154,6 +157,12 @@ namespace KalBeat.Combat
 
         public void PlayResolvedReactionMove(Vector2 targetLocalPosition, float durationSec, CombatJudgementGrade grade)
         {
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            PlayResolvedReactionMove(targetLocalPosition, startSec, durationSec, grade);
+        }
+
+        public void PlayResolvedReactionMove(Vector2 targetLocalPosition, float startSec, float durationSec, CombatJudgementGrade grade)
+        {
             if (duelRoot == null)
             {
                 return;
@@ -166,10 +175,16 @@ namespace KalBeat.Combat
                 ? ResolveMissArcHeight(transform.position, targetWorldPosition)
                 : 0f;
 
-            StartMove(targetWorldPosition, resolvedDuration, missArcHeight);
+            StartMove(targetWorldPosition, startSec, resolvedDuration, missArcHeight);
         }
 
         public void PlayResolvedApproachMove(Vector2 targetLocalPosition, float durationSec)
+        {
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            PlayResolvedApproachMove(targetLocalPosition, startSec, durationSec);
+        }
+
+        public void PlayResolvedApproachMove(Vector2 targetLocalPosition, float startSec, float durationSec)
         {
             if (duelRoot == null)
             {
@@ -179,37 +194,59 @@ namespace KalBeat.Combat
             ApplyColor(defaultColor);
             StartMove(
                 duelRoot.ConvertDuelLocalToWorld(targetLocalPosition),
+                startSec,
                 durationSec > 0f ? durationSec : defaultMoveDurationSec,
                 0f);
         }
 
         private void StartMove(Vector3 targetPosition, float durationSec, float arcHeight = 0f)
         {
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            StartMove(targetPosition, startSec, durationSec, arcHeight);
+        }
+
+        private void StartMove(Vector3 targetPosition, float startSec, float durationSec, float arcHeight = 0f)
+        {
             if (activeMoveRoutine != null)
             {
                 StopCoroutine(activeMoveRoutine);
             }
 
-            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, durationSec, arcHeight));
+            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, startSec, durationSec, arcHeight));
         }
 
         private IEnumerator RangedProjectileRoutine(
             GameObject projectileObject,
             Vector3 startPosition,
             Vector3 targetPosition,
+            float startSec,
             float durationSec)
         {
             float elapsed = 0f;
-            while (elapsed < durationSec)
+            while (true)
             {
                 if (projectileObject == null)
                 {
                     yield break;
                 }
 
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / durationSec);
+                float t;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    t = Mathf.Clamp01((rhythmClock.NowSec - startSec) / durationSec);
+                }
+                else
+                {
+                    elapsed += Time.deltaTime;
+                    t = Mathf.Clamp01(elapsed / durationSec);
+                }
+
                 projectileObject.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                if (t >= 1f)
+                {
+                    break;
+                }
+
                 yield return null;
             }
 
@@ -221,17 +258,26 @@ namespace KalBeat.Combat
             }
         }
 
-        private IEnumerator MoveRoutine(Vector3 targetPosition, float durationSec, float arcHeight)
+        private IEnumerator MoveRoutine(Vector3 targetPosition, float startSec, float durationSec, float arcHeight)
         {
             Vector3 startPosition = transform.position;
             float safeDuration = Mathf.Max(0.0001f, durationSec);
             float elapsed = 0f;
             Vector3 arcUp = duelRoot != null ? duelRoot.transform.up : Vector3.up;
 
-            while (elapsed < safeDuration)
+            while (true)
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / safeDuration);
+                float t;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    t = Mathf.Clamp01((rhythmClock.NowSec - startSec) / safeDuration);
+                }
+                else
+                {
+                    elapsed += Time.deltaTime;
+                    t = Mathf.Clamp01(elapsed / safeDuration);
+                }
+
                 Vector3 movePosition = Vector3.Lerp(startPosition, targetPosition, t);
                 if (arcHeight > 0f)
                 {
@@ -241,6 +287,11 @@ namespace KalBeat.Combat
                 }
 
                 transform.position = movePosition;
+                if (t >= 1f)
+                {
+                    break;
+                }
+
                 yield return null;
             }
 

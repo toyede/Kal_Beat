@@ -15,6 +15,7 @@ namespace KalBeat.Combat
         [SerializeField] private float readyMarkDurationSec = 0.15f;
 
         private CombatDuelRoot duelRoot;
+        private CombatRhythmClock rhythmClock;
         private Coroutine activeMoveRoutine;
         private CombatReadyMarkView readyMarkView;
         private bool attackMarkAnchorWarningLogged;
@@ -22,6 +23,7 @@ namespace KalBeat.Combat
 
         public MonsterDefinition Definition => definition;
         protected CombatDuelRoot DuelRoot => duelRoot;
+        protected CombatRhythmClock RhythmClock => rhythmClock;
         public Transform AttackMarkAnchor
         {
             get
@@ -40,9 +42,10 @@ namespace KalBeat.Combat
             }
         }
 
-        public void InitializeCombat(CombatDuelRoot root)
+        public void InitializeCombat(CombatDuelRoot root, CombatRhythmClock clock = null)
         {
             duelRoot = root;
+            rhythmClock = clock;
             TryAssignRenderer();
             TryAssignAttackMarkAnchor();
             TryAssignHitPoint();
@@ -171,7 +174,13 @@ namespace KalBeat.Combat
 
         protected void MoveToWorldPosition(Vector3 targetPosition, float durationSec)
         {
-            StartMove(targetPosition, durationSec);
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            StartMove(targetPosition, startSec, durationSec);
+        }
+
+        protected void MoveToWorldPosition(Vector3 targetPosition, float startSec, float durationSec)
+        {
+            StartMove(targetPosition, startSec, durationSec);
         }
 
         protected void SnapToBasePosition()
@@ -193,25 +202,45 @@ namespace KalBeat.Combat
 
         private void StartMove(Vector3 targetPosition, float durationSec)
         {
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
+            StartMove(targetPosition, startSec, durationSec);
+        }
+
+        private void StartMove(Vector3 targetPosition, float startSec, float durationSec)
+        {
             if (activeMoveRoutine != null)
             {
                 StopCoroutine(activeMoveRoutine);
             }
 
-            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, durationSec));
+            activeMoveRoutine = StartCoroutine(MoveRoutine(targetPosition, startSec, durationSec));
         }
 
-        private IEnumerator MoveRoutine(Vector3 targetPosition, float durationSec)
+        private IEnumerator MoveRoutine(Vector3 targetPosition, float startSec, float durationSec)
         {
             Vector3 startPosition = transform.position;
             float safeDuration = Mathf.Max(0.0001f, durationSec);
             float elapsed = 0f;
 
-            while (elapsed < safeDuration)
+            while (true)
             {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / safeDuration);
+                float t;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    t = Mathf.Clamp01((rhythmClock.NowSec - startSec) / safeDuration);
+                }
+                else
+                {
+                    elapsed += Time.deltaTime;
+                    t = Mathf.Clamp01(elapsed / safeDuration);
+                }
+
                 transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                if (t >= 1f)
+                {
+                    break;
+                }
+
                 yield return null;
             }
 

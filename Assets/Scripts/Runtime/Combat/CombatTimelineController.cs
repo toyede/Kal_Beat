@@ -14,14 +14,17 @@ namespace KalBeat.Combat
         [SerializeField] private PlayerCombatActor playerActor;
         [SerializeField] private MonsterCombatActor monsterActor;
         [SerializeField] private CombatJudgementSystem judgementSystem;
+        [SerializeField] private CombatAudioService audioService;
         [SerializeField] private PlayerAttackDefinition fallbackPlayerRangedAttackDefinition;
         [SerializeField] private bool playOnStart = true;
         [SerializeField] private string judgementInputCueEventPath = "event:/preview/finger_snap";
+        [SerializeField] private float sfxLeadMs;
         [SerializeField] private bool enableJudgementLogs = true;
 
         private readonly List<ResolvedCombatStep> runtimeMonsterSteps = new List<ResolvedCombatStep>();
         private readonly List<ResolvedCombatStep> runtimePlayerSteps = new List<ResolvedCombatStep>();
         private readonly List<ResolvedCombatStep> runtimeReadyCueSteps = new List<ResolvedCombatStep>();
+        private readonly CombatRhythmClock rhythmClock = new CombatRhythmClock();
         private EventInstance musicEventInstance;
         private int nextMonsterStartIndex;
         private int nextPlayerStartIndex;
@@ -55,7 +58,8 @@ namespace KalBeat.Combat
             }
 
             float currentTimeSec = timelinePositionMs * 0.001f;
-            judgementSystem?.UpdateAutoMiss(currentTimeSec);
+            rhythmClock.SetTimelineTime(currentTimeSec);
+            judgementSystem?.SetClockSample(currentTimeSec);
 
             while (nextPlayerStartIndex < runtimePlayerSteps.Count)
             {
@@ -73,17 +77,17 @@ namespace KalBeat.Combat
 
                 if (playerActor != null)
                 {
-                    playerActor.PlayResolvedApproachMove(resolvedStep.PlayerApproachLocalPos, resolvedStep.PlayerDurationSec);
+                    playerActor.PlayResolvedApproachMove(
+                        resolvedStep.PlayerApproachLocalPos,
+                        resolvedStep.PlayerStartSec,
+                        resolvedStep.PlayerDurationSec);
                 }
 
                 nextPlayerStartIndex++;
             }
 
-            if (judgementSystem != null && judgementSystem.IsInputPressedThisFrame())
-            {
-                PlayJudgementInputCue();
-                judgementSystem.JudgeInput(currentTimeSec);
-            }
+            ProcessJudgementInput(currentTimeSec);
+            judgementSystem?.UpdateAutoMiss(currentTimeSec);
 
             while (nextMonsterStartIndex < runtimeMonsterSteps.Count)
             {
@@ -103,6 +107,7 @@ namespace KalBeat.Combat
                 nextMonsterStartIndex++;
             }
 
+            float sfxLeadSec = Mathf.Max(0f, sfxLeadMs * 0.001f);
             while (nextReadyCueIndex < runtimeReadyCueSteps.Count)
             {
                 ResolvedCombatStep resolvedStep = runtimeReadyCueSteps[nextReadyCueIndex];
@@ -112,13 +117,26 @@ namespace KalBeat.Combat
                     continue;
                 }
 
-                if (resolvedStep.HitSec > currentTimeSec + 0.0001f)
+                if (resolvedStep.HitSec - sfxLeadSec > currentTimeSec + 0.0001f)
                 {
                     break;
                 }
 
                 PlayReadyCue(resolvedStep);
                 nextReadyCueIndex++;
+            }
+        }
+
+        private void ProcessJudgementInput(float currentTimeSec)
+        {
+            if (judgementSystem == null)
+            {
+                return;
+            }
+
+            while (judgementSystem.TryConsumeInput(currentTimeSec, out float inputTimelineSec))
+            {
+                judgementSystem.JudgeInput(inputTimelineSec);
             }
         }
 
@@ -161,13 +179,23 @@ namespace KalBeat.Combat
             {
                 judgementSystem = GetComponent<CombatJudgementSystem>();
             }
+
+            if (audioService == null)
+            {
+                audioService = GetComponent<CombatAudioService>();
+            }
+
+            if (audioService == null)
+            {
+                audioService = gameObject.AddComponent<CombatAudioService>();
+            }
         }
 
         private void ResetCombatState()
         {
             if (duelRoot != null)
             {
-                duelRoot.ResetLayout();
+                duelRoot.ResetLayout(rhythmClock);
             }
             else if (playerActor != null)
             {
@@ -255,6 +283,7 @@ namespace KalBeat.Combat
             runtimeMonsterSteps.Sort(CompareResolvedMonsterStarts);
             runtimePlayerSteps.Sort(CompareResolvedPlayerStarts);
             runtimeReadyCueSteps.Sort(CompareResolvedReadyCueHits);
+            WarmupRuntimeAudio();
             judgementSystem?.Initialize(runtimeMonsterSteps);
             runtimeTimelineReady = true;
         }
@@ -290,6 +319,8 @@ namespace KalBeat.Combat
                 return;
             }
 
+            rhythmClock.SetTimelineTime(0f);
+            judgementSystem?.SetClockSample(0f);
             playbackStarted = true;
         }
 
@@ -303,6 +334,7 @@ namespace KalBeat.Combat
 
             musicEventInstance = default;
             playbackStarted = false;
+            rhythmClock.Reset();
         }
 
         private void PlayReadyCue(ResolvedCombatStep resolvedStep)
@@ -324,7 +356,7 @@ namespace KalBeat.Combat
                 cuePosition = duelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos);
             }
 
-            RuntimeManager.PlayOneShot(resolvedStep.ReadyCueEventPath, cuePosition);
+            PlayCombatSfx(resolvedStep.ReadyCueEventPath, cuePosition);
         }
 
         private void PlayJudgementInputCue()
@@ -337,7 +369,51 @@ namespace KalBeat.Combat
             Vector3 cuePosition = playerActor != null
                 ? playerActor.transform.position
                 : Vector3.zero;
-            RuntimeManager.PlayOneShot(judgementInputCueEventPath, cuePosition);
+            PlayCombatSfx(judgementInputCueEventPath, cuePosition);
+        }
+
+        private void WarmupRuntimeAudio()
+        {
+            if (audioService == null)
+            {
+                return;
+            }
+
+            audioService.WarmupEventPath(judgementInputCueEventPath);
+            for (int i = 0; i < runtimeReadyCueSteps.Count; i++)
+            {
+                ResolvedCombatStep resolvedStep = runtimeReadyCueSteps[i];
+                if (resolvedStep != null)
+                {
+                    audioService.WarmupEventPath(resolvedStep.ReadyCueEventPath);
+                }
+            }
+        }
+
+        private void HandleInputFeedbackRequested()
+        {
+            if (!playbackStarted)
+            {
+                return;
+            }
+
+            PlayJudgementInputCue();
+        }
+
+        private void PlayCombatSfx(string eventPath, Vector3 position)
+        {
+            if (audioService != null)
+            {
+                audioService.PlayOneShot(eventPath, position);
+                return;
+            }
+
+            RuntimeManager.PlayOneShot(eventPath, position);
+        }
+
+        private void OnValidate()
+        {
+            sfxLeadMs = Mathf.Max(0f, sfxLeadMs);
         }
 
         private void SubscribeJudgementSystem()
@@ -345,7 +421,9 @@ namespace KalBeat.Combat
             if (judgementSystem != null)
             {
                 judgementSystem.JudgementResolved -= HandleJudgementResolved;
+                judgementSystem.InputFeedbackRequested -= HandleInputFeedbackRequested;
                 judgementSystem.JudgementResolved += HandleJudgementResolved;
+                judgementSystem.InputFeedbackRequested += HandleInputFeedbackRequested;
             }
         }
 
@@ -354,6 +432,7 @@ namespace KalBeat.Combat
             if (judgementSystem != null)
             {
                 judgementSystem.JudgementResolved -= HandleJudgementResolved;
+                judgementSystem.InputFeedbackRequested -= HandleInputFeedbackRequested;
             }
         }
 

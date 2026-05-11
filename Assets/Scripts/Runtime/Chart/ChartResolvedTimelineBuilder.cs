@@ -778,7 +778,9 @@ namespace KalBeat.Charting
 
             if (launchSec < readyHitSec)
             {
-                buildContext.AddWarning("Projectile speed is too slow. Please increase projectile speed.");
+                errorMessage =
+                    $"Ranged counter projectile at beat {readyEvent.Beat:0.###} is too slow. Projectile speed is too slow. Please increase projectile speed.";
+                return false;
             }
 
             resolvedStep.HasProjectileData = true;

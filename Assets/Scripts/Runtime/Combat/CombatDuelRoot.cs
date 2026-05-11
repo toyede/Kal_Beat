@@ -15,26 +15,26 @@ namespace KalBeat.Combat
         public float UnitSize => unitSize;
         public float StartDistanceUnits => startDistanceUnits;
 
-        public void InitializeLayout()
+        public void InitializeLayout(CombatRhythmClock rhythmClock = null)
         {
             if (playerActor != null)
             {
-                playerActor.InitializeCombat(this);
+                playerActor.InitializeCombat(this, rhythmClock);
                 playerActor.transform.position = GetPlayerBaseWorldPosition();
                 playerActor.transform.forward = transform.forward;
             }
 
             if (monsterActor != null)
             {
-                monsterActor.InitializeCombat(this);
+                monsterActor.InitializeCombat(this, rhythmClock);
                 monsterActor.transform.position = GetMonsterBaseWorldPosition();
                 monsterActor.transform.forward = -transform.forward;
             }
         }
 
-        public void ResetLayout()
+        public void ResetLayout(CombatRhythmClock rhythmClock = null)
         {
-            InitializeLayout();
+            InitializeLayout(rhythmClock);
 
             if (playerActor != null)
             {

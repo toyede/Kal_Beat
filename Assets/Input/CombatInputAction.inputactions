@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "CombatInputAction",
+    "maps": [
+        {
+            "name": "Combat",
+            "id": "33dcb120-e19d-4993-9491-a82cd3c1e470",
+            "actions": [
+                {
+                    "name": "Judgement",
+                    "type": "Button",
+                    "id": "7fd6b70d-58a7-444d-acd0-5fa871b77c6f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d622c252-b848-40c6-ab62-21c5fc5b42bb",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Judgement",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

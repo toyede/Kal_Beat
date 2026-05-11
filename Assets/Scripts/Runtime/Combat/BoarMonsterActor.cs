@@ -92,7 +92,7 @@ namespace KalBeat.Combat
                 if (resolvedStep.Phase == CombatEventPhase.Ready)
                 {
                     TryAssignRangedAttackVisualView();
-                    rangedAttackVisualView?.ShowCounterProjectile(resolvedStep, DuelRoot);
+                    rangedAttackVisualView?.ShowCounterProjectile(resolvedStep, DuelRoot, RhythmClock);
                 }
 
                 return;
@@ -119,7 +119,10 @@ namespace KalBeat.Combat
                     RestoreDefaultColor();
                     if (DuelRoot != null)
                     {
-                        MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos), resolvedStep.MonsterDurationSec);
+                        MoveToWorldPosition(
+                            DuelRoot.ConvertDuelLocalToWorld(resolvedStep.EndMonsterLocalPos),
+                            resolvedStep.MonsterStartSec,
+                            resolvedStep.MonsterDurationSec);
                     }
                     break;
             }
@@ -143,7 +146,7 @@ namespace KalBeat.Combat
                 if (DuelRoot != null)
                 {
                     Vector3 lockedTargetWorldPosition = DuelRoot.ConvertDuelLocalToWorld(resolvedStep.LockedPlayerLocalPos);
-                    rangedAttackVisualView?.FireAndConsume(resolvedStep, lockedTargetWorldPosition);
+                    rangedAttackVisualView?.FireAndConsume(resolvedStep, lockedTargetWorldPosition, RhythmClock);
                 }
 
                 return;
@@ -166,7 +169,10 @@ namespace KalBeat.Combat
                 Vector2 targetLocalPosition = resolvedStep.Kind == CombatEventKind.MeleeThreatCounterable
                     ? resolvedStep.MonsterApproachLocalPos
                     : resolvedStep.EndMonsterLocalPos;
-                MoveToWorldPosition(DuelRoot.ConvertDuelLocalToWorld(targetLocalPosition), resolvedStep.MonsterDurationSec);
+                MoveToWorldPosition(
+                    DuelRoot.ConvertDuelLocalToWorld(targetLocalPosition),
+                    resolvedStep.MonsterStartSec,
+                    resolvedStep.MonsterDurationSec);
             }
         }
 

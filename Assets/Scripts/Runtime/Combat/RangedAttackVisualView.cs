@@ -57,6 +57,11 @@ namespace KalBeat.Combat
 
         public void FireAndConsume(ResolvedCombatStep resolvedStep, Vector3 lockedTargetWorldPosition)
         {
+            FireAndConsume(resolvedStep, lockedTargetWorldPosition, null);
+        }
+
+        public void FireAndConsume(ResolvedCombatStep resolvedStep, Vector3 lockedTargetWorldPosition, CombatRhythmClock rhythmClock)
+        {
             if (resolvedStep == null)
             {
                 return;
@@ -68,7 +73,7 @@ namespace KalBeat.Combat
                 return;
             }
 
-            StartCoroutine(FireBeamRoutine(anchor.position, lockedTargetWorldPosition));
+            StartCoroutine(FireBeamRoutine(anchor.position, lockedTargetWorldPosition, rhythmClock));
 
             string key = BuildCircleKey(resolvedStep);
             if (!activeCircles.TryGetValue(key, out ActiveCircle activeCircle))
@@ -87,6 +92,11 @@ namespace KalBeat.Combat
         }
 
         public void ShowCounterProjectile(ResolvedCombatStep resolvedStep, CombatDuelRoot duelRoot)
+        {
+            ShowCounterProjectile(resolvedStep, duelRoot, null);
+        }
+
+        public void ShowCounterProjectile(ResolvedCombatStep resolvedStep, CombatDuelRoot duelRoot, CombatRhythmClock rhythmClock)
         {
             if (resolvedStep == null || duelRoot == null || !resolvedStep.HasProjectileData)
             {
@@ -119,7 +129,8 @@ namespace KalBeat.Combat
                 projectileObject,
                 spawnWorldPosition,
                 targetWorldPosition,
-                resolvedStep));
+                resolvedStep,
+                rhythmClock));
             activeProjectiles.Add(key, new ActiveProjectile(projectileObject, routine));
         }
 
@@ -184,7 +195,7 @@ namespace KalBeat.Combat
             return circleView;
         }
 
-        private IEnumerator FireBeamRoutine(Vector3 origin, Vector3 target)
+        private IEnumerator FireBeamRoutine(Vector3 origin, Vector3 target, CombatRhythmClock rhythmClock)
         {
             GameObject beamObject = new GameObject("RangedBeam");
             LineRenderer lineRenderer = beamObject.AddComponent<LineRenderer>();
@@ -197,15 +208,31 @@ namespace KalBeat.Combat
             lineRenderer.material = GetLineMaterial();
 
             float safeDuration = Mathf.Max(0.01f, beamDurationSec);
+            float startSec = rhythmClock != null && rhythmClock.HasTimelineTime ? rhythmClock.NowSec : 0f;
             float elapsed = 0f;
 
-            while (elapsed < safeDuration)
+            while (true)
             {
-                elapsed += Time.deltaTime;
-                float alpha = 1f - Mathf.Clamp01(elapsed / safeDuration);
+                float t;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    t = Mathf.Clamp01((rhythmClock.NowSec - startSec) / safeDuration);
+                }
+                else
+                {
+                    elapsed += Time.deltaTime;
+                    t = Mathf.Clamp01(elapsed / safeDuration);
+                }
+
+                float alpha = 1f - t;
                 Color fadedColor = new Color(beamColor.r, beamColor.g, beamColor.b, beamColor.a * alpha);
                 lineRenderer.startColor = fadedColor;
                 lineRenderer.endColor = fadedColor;
+                if (t >= 1f)
+                {
+                    break;
+                }
+
                 yield return null;
             }
 
@@ -217,33 +244,63 @@ namespace KalBeat.Combat
             GameObject projectileObject,
             Vector3 spawnWorldPosition,
             Vector3 targetWorldPosition,
-            ResolvedCombatStep resolvedStep)
+            ResolvedCombatStep resolvedStep,
+            CombatRhythmClock rhythmClock)
         {
             float launchDelaySec = Mathf.Max(0f, resolvedStep.ProjectileLaunchSec - resolvedStep.HitSec);
             float elapsedDelaySec = 0f;
-            while (elapsedDelaySec < launchDelaySec)
+            while (true)
             {
                 if (projectileObject == null)
                 {
                     yield break;
                 }
 
-                elapsedDelaySec += Time.deltaTime;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    if (rhythmClock.NowSec >= resolvedStep.ProjectileLaunchSec)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    elapsedDelaySec += Time.deltaTime;
+                    if (elapsedDelaySec >= launchDelaySec)
+                    {
+                        break;
+                    }
+                }
+
                 yield return null;
             }
 
             float travelDurationSec = Mathf.Max(0.0001f, resolvedStep.ProjectileContactSec - resolvedStep.ProjectileLaunchSec);
             float elapsedTravelSec = 0f;
-            while (elapsedTravelSec < travelDurationSec)
+            while (true)
             {
                 if (projectileObject == null)
                 {
                     yield break;
                 }
 
-                elapsedTravelSec += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsedTravelSec / travelDurationSec);
+                float t;
+                if (rhythmClock != null && rhythmClock.HasTimelineTime)
+                {
+                    t = Mathf.Clamp01((rhythmClock.NowSec - resolvedStep.ProjectileLaunchSec) / travelDurationSec);
+                }
+                else
+                {
+                    elapsedTravelSec += Time.deltaTime;
+                    t = Mathf.Clamp01(elapsedTravelSec / travelDurationSec);
+                }
+
                 projectileObject.transform.position = Vector3.Lerp(spawnWorldPosition, targetWorldPosition, t);
+                if (t >= 1f)
+                {
+                    break;
+                }
+
                 yield return null;
             }
 

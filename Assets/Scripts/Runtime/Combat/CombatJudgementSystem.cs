@@ -2,27 +2,63 @@ using System;
 using System.Collections.Generic;
 using KalBeat.Charting;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace KalBeat.Combat
 {
     public sealed class CombatJudgementSystem : MonoBehaviour
     {
-        [SerializeField] private KeyCode inputKey = KeyCode.Space;
         [SerializeField] private float perfectWindowMs = 35f;
         [SerializeField] private float goodWindowMs = 80f;
         [SerializeField] private float missWindowMs = 130f;
+        [SerializeField] private float inputOffsetMs;
+#if ENABLE_INPUT_SYSTEM
+        [SerializeField] private InputActionReference inputActionReference;
+#endif
 
         private readonly List<JudgementTargetState> targets = new List<JudgementTargetState>();
+#if ENABLE_INPUT_SYSTEM
+        private readonly Queue<double> pendingInputSystemTimes = new Queue<double>();
+#endif
+        private float lastClockTimelineSec;
+        private double lastClockRealtimeSec;
+        private bool hasClockSample;
+#if ENABLE_INPUT_SYSTEM
+        private InputAction subscribedInputAction;
+        private bool inputActionEnabledBySystem;
+        private bool missingInputActionWarningLogged;
+#endif
 
         public event Action<CombatJudgementResult> JudgementResolved;
+        public event Action InputFeedbackRequested;
 
         public float PerfectWindowMs => perfectWindowMs;
         public float GoodWindowMs => goodWindowMs;
         public float MissWindowMs => missWindowMs;
+        public float InputOffsetMs => inputOffsetMs;
+
+#if ENABLE_INPUT_SYSTEM
+        private void OnEnable()
+        {
+            SubscribeInputAction();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeInputAction();
+            pendingInputSystemTimes.Clear();
+        }
+#endif
 
         public void Initialize(List<ResolvedCombatStep> resolvedSteps)
         {
             targets.Clear();
+#if ENABLE_INPUT_SYSTEM
+            SubscribeInputAction();
+            pendingInputSystemTimes.Clear();
+#endif
             if (resolvedSteps == null)
             {
                 return;
@@ -48,11 +84,31 @@ namespace KalBeat.Combat
             {
                 targets[i].IsConsumed = false;
             }
+
+#if ENABLE_INPUT_SYSTEM
+            pendingInputSystemTimes.Clear();
+#endif
         }
 
-        public bool IsInputPressedThisFrame()
+        public void SetClockSample(float timelineSec)
         {
-            return Input.GetKeyDown(inputKey);
+            lastClockTimelineSec = Mathf.Max(0f, timelineSec);
+            lastClockRealtimeSec = Time.realtimeSinceStartupAsDouble;
+            hasClockSample = true;
+        }
+
+        public bool TryConsumeInput(float fallbackTimelineSec, out float inputTimelineSec)
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (pendingInputSystemTimes.Count > 0)
+            {
+                inputTimelineSec = Mathf.Max(0f, ConvertInputSystemTimeToTimeline(pendingInputSystemTimes.Dequeue()) + (inputOffsetMs * 0.001f));
+                return true;
+            }
+#endif
+
+            inputTimelineSec = 0f;
+            return false;
         }
 
         public void UpdateAutoMiss(float currentTimeSec)
@@ -156,6 +212,71 @@ namespace KalBeat.Combat
         {
             JudgementResolved?.Invoke(result);
         }
+
+#if ENABLE_INPUT_SYSTEM
+        private void SubscribeInputAction()
+        {
+            InputAction action = inputActionReference != null ? inputActionReference.action : null;
+            if (action == null)
+            {
+                if (!missingInputActionWarningLogged)
+                {
+                    Debug.LogError("CombatJudgementSystem requires an InputActionReference. Assign Combat/Judgement to enable rhythm input.", this);
+                    missingInputActionWarningLogged = true;
+                }
+
+                return;
+            }
+
+            if (subscribedInputAction == action)
+            {
+                return;
+            }
+
+            UnsubscribeInputAction();
+            subscribedInputAction = action;
+            subscribedInputAction.performed += HandleInputActionPerformed;
+            if (!subscribedInputAction.enabled)
+            {
+                subscribedInputAction.Enable();
+                inputActionEnabledBySystem = true;
+            }
+        }
+
+        private void UnsubscribeInputAction()
+        {
+            if (subscribedInputAction == null)
+            {
+                return;
+            }
+
+            subscribedInputAction.performed -= HandleInputActionPerformed;
+            if (inputActionEnabledBySystem)
+            {
+                subscribedInputAction.Disable();
+            }
+
+            subscribedInputAction = null;
+            inputActionEnabledBySystem = false;
+        }
+
+        private void HandleInputActionPerformed(InputAction.CallbackContext context)
+        {
+            pendingInputSystemTimes.Enqueue(context.time);
+            InputFeedbackRequested?.Invoke();
+        }
+
+        private float ConvertInputSystemTimeToTimeline(double inputSystemTimeSec)
+        {
+            if (!hasClockSample)
+            {
+                return Mathf.Max(0f, lastClockTimelineSec);
+            }
+
+            double realtimeDeltaSec = Math.Max(0.0, lastClockRealtimeSec - inputSystemTimeSec);
+            return Mathf.Max(0f, lastClockTimelineSec - (float)realtimeDeltaSec);
+        }
+#endif
 
         private void OnValidate()
         {
