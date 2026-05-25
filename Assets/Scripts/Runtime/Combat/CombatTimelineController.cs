@@ -438,6 +438,7 @@ namespace KalBeat.Combat
 
         private void HandleJudgementResolved(CombatJudgementResult result)
         {
+            PlayPlayerJudgementAnimation(result);
             ApplyJudgementReaction(result);
 
             if (!enableJudgementLogs)
@@ -477,6 +478,51 @@ namespace KalBeat.Combat
                     }
 
                     monsterActor?.HandleResolvedJudgement(result.ResolvedStep, result.Grade);
+                    break;
+            }
+        }
+
+        private void PlayPlayerJudgementAnimation(CombatJudgementResult result)
+        {
+            if (playerActor == null)
+            {
+                return;
+            }
+
+            if (result.Grade == CombatJudgementGrade.Ignore)
+            {
+                playerActor.PlayAttackAnimation();
+                return;
+            }
+
+            if (result.ResolvedStep == null)
+            {
+                return;
+            }
+
+            if (result.Grade == CombatJudgementGrade.Miss)
+            {
+                playerActor.PlayHitAnimation();
+                return;
+            }
+
+            if (result.Grade != CombatJudgementGrade.Perfect &&
+                result.Grade != CombatJudgementGrade.Good)
+            {
+                return;
+            }
+
+            switch (result.ResolvedStep.Kind)
+            {
+                case CombatEventKind.MeleeThreatDodgeOnly:
+                case CombatEventKind.RangedThreatDodgeOnly:
+                    playerActor.PlayDodgeAnimation(result.ResolvedStep.PlayerDirectionHint);
+                    break;
+                case CombatEventKind.MeleeThreatCounterable:
+                case CombatEventKind.RangedThreatCounterable:
+                case CombatEventKind.PlayerDashAttack:
+                case CombatEventKind.PlayerRangedAttack:
+                    playerActor.PlayAttackAnimation();
                     break;
             }
         }

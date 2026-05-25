@@ -18,6 +18,13 @@ namespace KalBeat.Combat
         [SerializeField] private float missArcHeightMin = 0.35f;
         [SerializeField] private float missArcHeightMax = 1.4f;
         [SerializeField] private Transform shootPoint;
+        [SerializeField] private Animator visualAnimator;
+        [SerializeField] private Transform visualRoot;
+        [SerializeField] private string attackTriggerName = "Attack";
+        [SerializeField] private string dodgeTriggerName = "Dodge";
+        [SerializeField] private string hitTriggerName = "Hit";
+        [SerializeField] private float dodgeVisualYawDegrees = 90f;
+        [SerializeField] private float dodgeVisualRestoreDelaySec = 1.5f;
         [SerializeField] private AnimationCurve missArcCurve = new AnimationCurve(
             new Keyframe(0f, 0f),
             new Keyframe(0.35f, 1f),
@@ -26,6 +33,12 @@ namespace KalBeat.Combat
         private CombatDuelRoot duelRoot;
         private CombatRhythmClock rhythmClock;
         private Coroutine activeMoveRoutine;
+        private int attackTriggerHash;
+        private int dodgeTriggerHash;
+        private int hitTriggerHash;
+        private bool hasVisualDefaultLocalRotation;
+        private Quaternion visualDefaultLocalRotation = Quaternion.identity;
+        private Coroutine activeVisualFacingRoutine;
         private readonly List<GameObject> activeRangedProjectiles = new List<GameObject>();
         private readonly List<Coroutine> activeRangedProjectileRoutines = new List<Coroutine>();
 
@@ -45,6 +58,10 @@ namespace KalBeat.Combat
             rhythmClock = clock;
             TryAssignRenderer();
             TryAssignShootPoint();
+            TryAssignAnimator();
+            TryAssignVisualRoot();
+            CacheVisualDefaultLocalRotation();
+            RefreshAnimatorHashes();
             ApplyColor(defaultColor);
         }
 
@@ -57,6 +74,7 @@ namespace KalBeat.Combat
             }
 
             DestroyActiveRangedProjectiles();
+            RestoreVisualFacingImmediate();
 
             if (duelRoot != null)
             {
@@ -65,6 +83,35 @@ namespace KalBeat.Combat
 
             ApplyColor(defaultColor);
             duelRoot?.RefreshActorFacing();
+        }
+
+        public void PlayAttackAnimation()
+        {
+            TryAssignAnimator();
+            TryAssignVisualRoot();
+            RefreshAnimatorHashes();
+            RestoreVisualFacingImmediate();
+            PlayVisualTrigger(attackTriggerHash);
+        }
+
+        public void PlayDodgeAnimation(PlayerRelativeDirection directionHint)
+        {
+            TryAssignAnimator();
+            TryAssignVisualRoot();
+            CacheVisualDefaultLocalRotation();
+            RefreshAnimatorHashes();
+            ApplyDodgeVisualFacing(directionHint);
+            PlayVisualTrigger(dodgeTriggerHash);
+            StartVisualFacingRestore();
+        }
+
+        public void PlayHitAnimation()
+        {
+            TryAssignAnimator();
+            TryAssignVisualRoot();
+            RefreshAnimatorHashes();
+            RestoreVisualFacingImmediate();
+            PlayVisualTrigger(hitTriggerHash);
         }
 
         public void FireRangedAttack(PlayerAttackDefinition attackDefinition, Transform targetPoint)
@@ -354,6 +401,123 @@ namespace KalBeat.Combat
             }
         }
 
+        private void TryAssignAnimator()
+        {
+            if (visualAnimator == null)
+            {
+                visualAnimator = GetComponentInChildren<Animator>();
+            }
+        }
+
+        private void TryAssignVisualRoot()
+        {
+            if (visualRoot == null && visualAnimator != null)
+            {
+                visualRoot = visualAnimator.transform;
+            }
+        }
+
+        private void CacheVisualDefaultLocalRotation()
+        {
+            if (!hasVisualDefaultLocalRotation && visualRoot != null)
+            {
+                visualDefaultLocalRotation = visualRoot.localRotation;
+                hasVisualDefaultLocalRotation = true;
+            }
+        }
+
+        private void RefreshAnimatorHashes()
+        {
+            attackTriggerHash = string.IsNullOrWhiteSpace(attackTriggerName)
+                ? 0
+                : Animator.StringToHash(attackTriggerName);
+            dodgeTriggerHash = string.IsNullOrWhiteSpace(dodgeTriggerName)
+                ? 0
+                : Animator.StringToHash(dodgeTriggerName);
+            hitTriggerHash = string.IsNullOrWhiteSpace(hitTriggerName)
+                ? 0
+                : Animator.StringToHash(hitTriggerName);
+        }
+
+        private void PlayVisualTrigger(int triggerHash)
+        {
+            if (visualAnimator == null || triggerHash == 0)
+            {
+                return;
+            }
+
+            ResetVisualTriggers();
+            visualAnimator.SetTrigger(triggerHash);
+        }
+
+        private void ResetVisualTriggers()
+        {
+            ResetVisualTrigger(attackTriggerHash);
+            ResetVisualTrigger(dodgeTriggerHash);
+            ResetVisualTrigger(hitTriggerHash);
+        }
+
+        private void ResetVisualTrigger(int triggerHash)
+        {
+            if (triggerHash != 0)
+            {
+                visualAnimator.ResetTrigger(triggerHash);
+            }
+        }
+
+        private void ApplyDodgeVisualFacing(PlayerRelativeDirection directionHint)
+        {
+            if (visualRoot == null)
+            {
+                return;
+            }
+
+            StopVisualFacingRestore();
+            float yawSign = directionHint == PlayerRelativeDirection.Left ? -1f : 1f;
+            visualRoot.localRotation = visualDefaultLocalRotation *
+                Quaternion.Euler(0f, yawSign * dodgeVisualYawDegrees, 0f);
+        }
+
+        private void StartVisualFacingRestore()
+        {
+            if (visualRoot == null || dodgeVisualRestoreDelaySec <= 0f)
+            {
+                return;
+            }
+
+            activeVisualFacingRoutine = StartCoroutine(RestoreVisualFacingRoutine());
+        }
+
+        private IEnumerator RestoreVisualFacingRoutine()
+        {
+            yield return new WaitForSeconds(dodgeVisualRestoreDelaySec);
+            activeVisualFacingRoutine = null;
+            RestoreVisualFacingRotation();
+        }
+
+        private void RestoreVisualFacingImmediate()
+        {
+            StopVisualFacingRestore();
+            RestoreVisualFacingRotation();
+        }
+
+        private void RestoreVisualFacingRotation()
+        {
+            if (visualRoot != null && hasVisualDefaultLocalRotation)
+            {
+                visualRoot.localRotation = visualDefaultLocalRotation;
+            }
+        }
+
+        private void StopVisualFacingRestore()
+        {
+            if (activeVisualFacingRoutine != null)
+            {
+                StopCoroutine(activeVisualFacingRoutine);
+                activeVisualFacingRoutine = null;
+            }
+        }
+
         private static Transform FindChildByName(Transform root, string childName)
         {
             if (root == null || string.IsNullOrWhiteSpace(childName))
@@ -405,12 +569,18 @@ namespace KalBeat.Combat
             missArcHeightPerUnit = Mathf.Max(0f, missArcHeightPerUnit);
             missArcHeightMin = Mathf.Max(0f, missArcHeightMin);
             missArcHeightMax = Mathf.Max(missArcHeightMin, missArcHeightMax);
+            dodgeVisualYawDegrees = Mathf.Max(0f, dodgeVisualYawDegrees);
+            dodgeVisualRestoreDelaySec = Mathf.Max(0f, dodgeVisualRestoreDelaySec);
             missArcCurve ??= new AnimationCurve(
                 new Keyframe(0f, 0f),
                 new Keyframe(0.35f, 1f),
                 new Keyframe(1f, 0f));
             TryAssignRenderer();
             TryAssignShootPoint();
+            TryAssignAnimator();
+            TryAssignVisualRoot();
+            CacheVisualDefaultLocalRotation();
+            RefreshAnimatorHashes();
         }
     }
 }
