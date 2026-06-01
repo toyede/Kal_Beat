@@ -17,15 +17,26 @@ MonoBehaviour:
   combatKind: 1
   entryBandUnits: 4
   readyCueEventPath: event:/preview/finger_snap
+  rangedCueCount: 8
+  rangedAnchorCount: 8
+  rangedCueIntervalBeats: 0.5
+  rangedResponseOffsetBeats: 4
+  rangedDodgeMoveUnits: 4
+  rangedResponseBandUnits: 4
+  autoMovePlayerToResponseBand: 1
+  projectilePrefab: {fileID: 0}
+  projectileFrontTipName: FrontTip
+  projectileTravelUnits: 1
+  projectileTravelDurationSec: 0.2
   steps:
   - beatOffsetFromTiming: -2
     phase: 0
-    readyCueType: 1
+    readyCueType: 2
     directionHint: 0
-    movementResolveMode: 0
-    moveUnits: 0
-    targetBandUnits: 0
-    movementDirectionHint: 0
+    movementResolveMode: 2
+    moveUnits: 4
+    targetBandUnits: 4
+    movementDirectionHint: 2
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
   - beatOffsetFromTiming: -1
