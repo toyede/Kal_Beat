@@ -33,6 +33,7 @@ namespace KalBeat.Charting
         private const string ErrorCodeRangedReadyCueInvalid = "event.ranged.ready_cue.invalid";
         private const string ErrorCodeRangedPairInvalid = "event.ranged.pair.invalid";
         private const string ErrorCodeRangedPairAnchorMismatch = "event.ranged.pair.anchor_mismatch";
+        private const string ErrorCodeRangedOpenInvalid = "event.ranged.open.invalid";
         private const string ErrorCodePlayerRangedDuplicateInPhrase = "event.player_ranged.duplicate_in_phrase";
         private const string ErrorCodeSlotOverflow = "event.slot_overflow";
         private const string WarningCodeEventKindNone = "event.kind.none";
@@ -101,6 +102,7 @@ namespace KalBeat.Charting
             int safeMaxEventsPerSlot = meta.MaxEventsPerSlot > 0 ? meta.MaxEventsPerSlot : 1;
             var slotCounter = new Dictionary<int, int>();
             var rangedPairs = new Dictionary<string, RangedPairValidationState>(StringComparer.Ordinal);
+            var rangedOpenStates = new Dictionary<string, RangedOpenValidationState>(StringComparer.Ordinal);
             var playerRangedCuesByPhrase = new Dictionary<string, PlayerRangedPhraseValidationState>(StringComparer.Ordinal);
 
             for (int i = 0; i < events.Count; i++)
@@ -205,7 +207,7 @@ namespace KalBeat.Charting
 
                 if (IsRangedPhraseKind(eventData.Kind))
                 {
-                    ValidateRangedPhraseEvent(result, rangedPairs, eventData, i);
+                    ValidateRangedPhraseEvent(result, rangedPairs, rangedOpenStates, eventData, i);
                     ValidatePlayerRangedPhraseLimit(result, playerRangedCuesByPhrase, eventData, i);
                 }
 
@@ -255,6 +257,27 @@ namespace KalBeat.Charting
                 }
             }
 
+            foreach (RangedOpenValidationState openState in rangedOpenStates.Values)
+            {
+                if (openState.OpenCount > 1)
+                {
+                    result.AddError(
+                        ErrorCodeRangedOpenInvalid,
+                        "A ranged phrase can contain only one Open marker.",
+                        openState.OpenEventIndex);
+                }
+
+                if (openState.OpenEventIndex >= 0 &&
+                    openState.FirstReadyEventIndex >= 0 &&
+                    openState.OpenEventIndex != openState.FirstReadyEventIndex)
+                {
+                    result.AddError(
+                        ErrorCodeRangedOpenInvalid,
+                        "Ranged Open can be set only on the first Ready call in the phrase.",
+                        openState.OpenEventIndex);
+                }
+            }
+
             return result;
         }
 
@@ -279,6 +302,7 @@ namespace KalBeat.Charting
         private static void ValidateRangedPhraseEvent(
             ChartValidationResult result,
             Dictionary<string, RangedPairValidationState> rangedPairs,
+            Dictionary<string, RangedOpenValidationState> rangedOpenStates,
             ChartEventData eventData,
             int eventIndex)
         {
@@ -308,6 +332,23 @@ namespace KalBeat.Charting
                 return;
             }
 
+            TrackRangedOpenState(rangedOpenStates, eventData, eventIndex);
+
+            if (eventData.RangedOpen)
+            {
+                if (eventData.Phase != CombatEventPhase.Ready)
+                {
+                    result.AddError(ErrorCodeRangedOpenInvalid, "Ranged Open can be set only on a Ready call.", eventIndex);
+                }
+
+                if (eventData.Kind == CombatEventKind.PlayerRangedAttack)
+                {
+                    result.AddError(ErrorCodeRangedOpenInvalid, "Ranged Open can be used only on a ranged threat call.", eventIndex);
+                }
+
+                return;
+            }
+
             string key = $"{eventData.Lane}:{(int)eventData.Kind}:{eventData.RangedPhraseId}:{eventData.RangedCueIndex}";
             if (!rangedPairs.TryGetValue(key, out RangedPairValidationState pairState))
             {
@@ -329,6 +370,46 @@ namespace KalBeat.Charting
             else if (eventData.Phase == CombatEventPhase.Timing)
             {
                 pairState.TimingCount++;
+            }
+        }
+
+        private static void TrackRangedOpenState(
+            Dictionary<string, RangedOpenValidationState> rangedOpenStates,
+            ChartEventData eventData,
+            int eventIndex)
+        {
+            if (rangedOpenStates == null ||
+                eventData == null ||
+                eventData.Phase != CombatEventPhase.Ready ||
+                string.IsNullOrWhiteSpace(eventData.RangedPhraseId))
+            {
+                return;
+            }
+
+            string phraseKey = $"{eventData.Lane}:{eventData.RangedPhraseId}";
+            if (!rangedOpenStates.TryGetValue(phraseKey, out RangedOpenValidationState state))
+            {
+                state = new RangedOpenValidationState();
+                rangedOpenStates.Add(phraseKey, state);
+            }
+
+            if (state.FirstReadyEventIndex < 0 ||
+                eventData.Beat < state.FirstReadyBeat ||
+                (Math.Abs(eventData.Beat - state.FirstReadyBeat) <= 0.0001f &&
+                 eventData.StepIndex < state.FirstReadyStepIndex))
+            {
+                state.FirstReadyEventIndex = eventIndex;
+                state.FirstReadyBeat = eventData.Beat;
+                state.FirstReadyStepIndex = eventData.StepIndex;
+            }
+
+            if (eventData.RangedOpen)
+            {
+                state.OpenCount++;
+                if (state.OpenEventIndex < 0)
+                {
+                    state.OpenEventIndex = eventIndex;
+                }
             }
         }
 
@@ -395,6 +476,15 @@ namespace KalBeat.Charting
 
             public int FirstEventIndex { get; }
             public int CueIndex { get; }
+        }
+
+        private sealed class RangedOpenValidationState
+        {
+            public int FirstReadyEventIndex { get; set; } = -1;
+            public float FirstReadyBeat { get; set; } = float.MaxValue;
+            public int FirstReadyStepIndex { get; set; } = int.MaxValue;
+            public int OpenEventIndex { get; set; } = -1;
+            public int OpenCount { get; set; }
         }
     }
 }

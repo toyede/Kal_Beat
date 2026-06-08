@@ -40,6 +40,7 @@ namespace KalBeat.Charting
         [SerializeField] private string rangedPhraseId = string.Empty;
         [SerializeField] private int rangedCueIndex = -1;
         [SerializeField] private int rangedAnchorIndex = -1;
+        [SerializeField] private bool rangedOpen;
         [SerializeField] private bool hasProjectileData;
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private Vector3 projectileSpawnLocalPos;
@@ -48,6 +49,9 @@ namespace KalBeat.Charting
         [SerializeField] private float projectileLaunchSec;
         [SerializeField] private float projectileContactSec;
         [SerializeField] private float projectileFrontOffsetUnits;
+        [SerializeField] private bool hasPostRangedRecovery;
+        [SerializeField] private Vector2 postRangedRecoveryMonsterLocalPos;
+        [SerializeField] private float postRangedRecoveryDurationSec;
 
         public string MonsterId
         {
@@ -247,6 +251,12 @@ namespace KalBeat.Charting
             set => rangedAnchorIndex = value;
         }
 
+        public bool RangedOpen
+        {
+            get => rangedOpen;
+            set => rangedOpen = value;
+        }
+
         public bool HasProjectileData
         {
             get => hasProjectileData;
@@ -293,6 +303,24 @@ namespace KalBeat.Charting
         {
             get => projectileFrontOffsetUnits;
             set => projectileFrontOffsetUnits = value;
+        }
+
+        public bool HasPostRangedRecovery
+        {
+            get => hasPostRangedRecovery;
+            set => hasPostRangedRecovery = value;
+        }
+
+        public Vector2 PostRangedRecoveryMonsterLocalPos
+        {
+            get => postRangedRecoveryMonsterLocalPos;
+            set => postRangedRecoveryMonsterLocalPos = value;
+        }
+
+        public float PostRangedRecoveryDurationSec
+        {
+            get => postRangedRecoveryDurationSec;
+            set => postRangedRecoveryDurationSec = value;
         }
     }
 }

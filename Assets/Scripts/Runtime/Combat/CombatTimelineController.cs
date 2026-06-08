@@ -554,6 +554,7 @@ namespace KalBeat.Combat
         private static bool ShouldPlayReadyCue(ResolvedCombatStep resolvedStep)
         {
             return resolvedStep != null &&
+                   !resolvedStep.RangedOpen &&
                    resolvedStep.Phase == CombatEventPhase.Ready &&
                    (resolvedStep.ReadyCueType == ReadyCueType.Pose ||
                     resolvedStep.ReadyCueType == ReadyCueType.Move ||

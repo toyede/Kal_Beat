@@ -34,9 +34,9 @@ MonoBehaviour:
     readyCueType: 2
     directionHint: 0
     movementResolveMode: 2
-    moveUnits: 4
+    moveUnits: 2
     targetBandUnits: 4
-    movementDirectionHint: 2
+    movementDirectionHint: 1
     playerKnockbackUnits: 0
     monsterKnockbackUnits: 0
   - beatOffsetFromTiming: -1
@@ -44,7 +44,7 @@ MonoBehaviour:
     readyCueType: 2
     directionHint: 0
     movementResolveMode: 2
-    moveUnits: 4
+    moveUnits: 2
     targetBandUnits: 4
     movementDirectionHint: 2
     playerKnockbackUnits: 0

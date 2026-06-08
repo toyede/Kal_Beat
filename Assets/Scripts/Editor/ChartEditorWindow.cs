@@ -826,6 +826,7 @@ namespace KalBeat.Charting.Editor
             string nextRangedPhraseId = selectedEvent.RangedPhraseId;
             int nextRangedCueIndex = selectedEvent.RangedCueIndex;
             int nextRangedAnchorIndex = selectedEvent.RangedAnchorIndex;
+            bool nextRangedOpen = selectedEvent.RangedOpen;
 
             if (IsRangedPhraseKind(nextKind))
             {
@@ -834,6 +835,12 @@ namespace KalBeat.Charting.Editor
                 nextRangedPhraseId = EditorGUILayout.TextField("Phrase Id", selectedEvent.RangedPhraseId);
                 nextRangedCueIndex = EditorGUILayout.IntField("Cue Index", selectedEvent.RangedCueIndex);
                 nextRangedAnchorIndex = EditorGUILayout.IntField("Anchor Index", selectedEvent.RangedAnchorIndex);
+                if (CanEditRangedOpen(selectedEvent, nextKind, nextPhase))
+                {
+                    nextRangedOpen = EditorGUILayout.Toggle("Open", selectedEvent.RangedOpen);
+                    EditorGUILayout.HelpBox("Open keeps this first call as the ranged phrase start marker without firing an attack or requiring a response.", MessageType.Info);
+                }
+
                 EditorGUILayout.HelpBox("Ready and Timing events are paired by Phrase Id + Cue Index. Anchor Index selects the monster ranged anchor.", MessageType.Info);
             }
 
@@ -850,7 +857,8 @@ namespace KalBeat.Charting.Editor
                       nextDirectionHint != selectedEvent.DirectionHint ||
                       nextRangedPhraseId != selectedEvent.RangedPhraseId ||
                       nextRangedCueIndex != selectedEvent.RangedCueIndex ||
-                      nextRangedAnchorIndex != selectedEvent.RangedAnchorIndex;
+                      nextRangedAnchorIndex != selectedEvent.RangedAnchorIndex ||
+                      nextRangedOpen != selectedEvent.RangedOpen;
 
                 RecordChartChange("Edit Chart Event");
                 selectedEvent.Beat = snapEnabled ? QuantizeBeat(nextBeat) : Mathf.Max(0f, nextBeat);
@@ -869,6 +877,7 @@ namespace KalBeat.Charting.Editor
                     selectedEvent.RangedPhraseId = nextRangedPhraseId ?? string.Empty;
                     selectedEvent.RangedCueIndex = Mathf.Max(-1, nextRangedCueIndex);
                     selectedEvent.RangedAnchorIndex = Mathf.Max(-1, nextRangedAnchorIndex);
+                    selectedEvent.RangedOpen = CanEditRangedOpen(selectedEvent, selectedEvent.Kind, selectedEvent.Phase) && nextRangedOpen;
                 }
                 else
                 {
@@ -1164,6 +1173,15 @@ namespace KalBeat.Charting.Editor
         {
             if (selectedEvent == null)
             {
+                return;
+            }
+
+            if (IsProtectedRangedPhraseStartEvent(selectedEvent) && !IsRangedPhraseKind(eventKind))
+            {
+                EditorUtility.DisplayDialog(
+                    "Cannot Convert Ranged Start",
+                    "The first Ready event in a ranged phrase is the phrase start marker. Use Open instead of converting it to None.",
+                    "OK");
                 return;
             }
 
@@ -1588,7 +1606,8 @@ namespace KalBeat.Charting.Editor
             CombatEventPhase phase,
             PlayerRelativeDirection directionHint,
             float entryBandUnits,
-            float preservedNudgeMs = 0f)
+            float preservedNudgeMs = 0f,
+            bool rangedOpen = false)
         {
             ApplyRangedPhraseEvent(
                 eventData,
@@ -1603,7 +1622,8 @@ namespace KalBeat.Charting.Editor
                 phase,
                 directionHint,
                 entryBandUnits,
-                preservedNudgeMs);
+                preservedNudgeMs,
+                rangedOpen);
         }
 
         private static void ApplyRangedPhraseEvent(
@@ -1619,7 +1639,8 @@ namespace KalBeat.Charting.Editor
             CombatEventPhase phase,
             PlayerRelativeDirection directionHint,
             float entryBandUnits,
-            float preservedNudgeMs = 0f)
+            float preservedNudgeMs = 0f,
+            bool rangedOpen = false)
         {
             eventData.Beat = beat;
             eventData.Lane = lane;
@@ -1639,6 +1660,7 @@ namespace KalBeat.Charting.Editor
             eventData.RangedPhraseId = phraseId ?? string.Empty;
             eventData.RangedCueIndex = cueIndex;
             eventData.RangedAnchorIndex = anchorIndex;
+            eventData.RangedOpen = rangedOpen && phase == CombatEventPhase.Ready && eventKind != CombatEventKind.PlayerRangedAttack;
             ApplyAppliedPatternMetadata(eventData, appliedPatternMetadata);
         }
 
@@ -1784,6 +1806,15 @@ namespace KalBeat.Charting.Editor
             if (!currentChart.Events.Contains(selectedEvent))
             {
                 selectedEvent = null;
+                return;
+            }
+
+            if (IsProtectedRangedPhraseStartEvent(selectedEvent))
+            {
+                EditorUtility.DisplayDialog(
+                    "Cannot Delete Ranged Start",
+                    "The first Ready event in a ranged phrase is required as the phrase start marker. Turn on Open if this anchor should not fire an attack.",
+                    "OK");
                 return;
             }
 
@@ -2680,6 +2711,11 @@ namespace KalBeat.Charting.Editor
 
         private static Color GetEventColor(ChartEventData eventData)
         {
+            if (IsRangedOpenReadyEvent(eventData))
+            {
+                return new Color(0.55f, 0.55f, 0.58f, 1f);
+            }
+
             Color baseColor;
             switch (eventData.Kind)
             {
@@ -2716,6 +2752,11 @@ namespace KalBeat.Charting.Editor
 
         private static string GetEventShortLabel(ChartEventData eventData)
         {
+            if (IsRangedOpenReadyEvent(eventData))
+            {
+                return "O";
+            }
+
             string prefix;
             switch (eventData.Kind)
             {
@@ -3187,6 +3228,64 @@ namespace KalBeat.Charting.Editor
                    combatEventKind == CombatEventKind.RangedThreatCounterable;
         }
 
+        private bool CanEditRangedOpen(ChartEventData eventData, CombatEventKind combatEventKind, CombatEventPhase phase)
+        {
+            return eventData != null &&
+                   phase == CombatEventPhase.Ready &&
+                   IsRangedThreatPatternKind(combatEventKind) &&
+                   IsFirstRangedPhraseReadyEvent(eventData);
+        }
+
+        private bool IsProtectedRangedPhraseStartEvent(ChartEventData eventData)
+        {
+            return eventData != null &&
+                   eventData.Phase == CombatEventPhase.Ready &&
+                   IsRangedPhraseKind(eventData.Kind) &&
+                   IsFirstRangedPhraseReadyEvent(eventData);
+        }
+
+        private bool IsFirstRangedPhraseReadyEvent(ChartEventData eventData)
+        {
+            if (currentChart == null ||
+                currentChart.Events == null ||
+                eventData == null ||
+                eventData.Phase != CombatEventPhase.Ready ||
+                !IsRangedPhraseKind(eventData.Kind) ||
+                string.IsNullOrWhiteSpace(eventData.RangedPhraseId))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < currentChart.Events.Count; i++)
+            {
+                ChartEventData otherEvent = currentChart.Events[i];
+                if (otherEvent == null ||
+                    ReferenceEquals(otherEvent, eventData) ||
+                    otherEvent.Phase != CombatEventPhase.Ready ||
+                    !IsRangedPhraseKind(otherEvent.Kind) ||
+                    otherEvent.Lane != eventData.Lane ||
+                    !string.Equals(otherEvent.RangedPhraseId, eventData.RangedPhraseId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (CompareRangedPhraseEvents(otherEvent, eventData) < 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsRangedOpenReadyEvent(ChartEventData eventData)
+        {
+            return eventData != null &&
+                   eventData.RangedOpen &&
+                   eventData.Phase == CombatEventPhase.Ready &&
+                   IsRangedThreatPatternKind(eventData.Kind);
+        }
+
         private static string GetRangedReadyCueLabel(CombatEventKind combatEventKind)
         {
             switch (combatEventKind)
@@ -3531,6 +3630,7 @@ namespace KalBeat.Charting.Editor
             targetEvent.EntryBandUnits = patternDefinition.EntryBandUnits;
             targetEvent.PlayerKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.PlayerKnockbackUnits : 0f;
             targetEvent.MonsterKnockbackUnits = stepDefinition.Phase == CombatEventPhase.Timing ? stepDefinition.MonsterKnockbackUnits : 0f;
+            targetEvent.RangedOpen = false;
             targetEvent.NudgeMs = preservedNudgeMs;
             ApplyAppliedPatternMetadata(targetEvent, metadata);
         }
@@ -3838,12 +3938,13 @@ namespace KalBeat.Charting.Editor
                 return false;
             }
 
-            int cueCount = Mathf.Clamp(patternDefinition.RangedCueCount, 1, 32);
             int anchorCount = Mathf.Clamp(patternDefinition.RangedAnchorCount, 1, 32);
-            int expectedStepCount = cueCount * 2;
             int lane = referenceEvent.Lane;
             string phraseId = referenceEvent.RangedPhraseId;
-            Dictionary<int, ChartEventData> eventsByStepIndex = new Dictionary<int, ChartEventData>();
+            List<ChartEventData> readyEvents = new List<ChartEventData>();
+            List<ChartEventData> openEvents = new List<ChartEventData>();
+            List<ChartEventData> callEvents = new List<ChartEventData>();
+            List<ChartEventData> responseEvents = new List<ChartEventData>();
 
             for (int i = 0; i < group.Events.Count; i++)
             {
@@ -3862,40 +3963,68 @@ namespace KalBeat.Charting.Editor
                     return false;
                 }
 
-                if (eventData.StepIndex < 0 || eventData.StepIndex >= expectedStepCount)
+                if (eventData.Phase == CombatEventPhase.Ready)
+                {
+                    readyEvents.Add(eventData);
+                    if (eventData.RangedOpen)
+                    {
+                        openEvents.Add(eventData);
+                    }
+                    else
+                    {
+                        callEvents.Add(eventData);
+                    }
+
+                    continue;
+                }
+
+                if (eventData.RangedOpen)
                 {
                     errorMessage =
-                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' changed cue count. Reapply the phrase manually before saving.";
+                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has Open set on a response. Open is allowed only on the first Ready call.";
                     return false;
                 }
 
-                if (eventsByStepIndex.ContainsKey(eventData.StepIndex))
-                {
-                    errorMessage =
-                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has duplicate chart step indices. Fix the chart manually before saving.";
-                    return false;
-                }
-
-                eventsByStepIndex.Add(eventData.StepIndex, eventData);
+                responseEvents.Add(eventData);
             }
 
-            if (eventsByStepIndex.Count != expectedStepCount)
+            readyEvents.Sort(CompareRangedPhraseEvents);
+            openEvents.Sort(CompareRangedPhraseEvents);
+            ChartEventData openEvent = openEvents.Count > 0 ? openEvents[0] : null;
+            if (openEvents.Count > 1)
             {
                 errorMessage =
-                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' changed cue count. Reapply the phrase manually before saving.";
+                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has more than one Open marker. Keep only the first Ready call open.";
                 return false;
             }
 
-            if (!eventsByStepIndex.TryGetValue(0, out ChartEventData firstCallEvent))
+            if (openEvent != null && (readyEvents.Count == 0 || !ReferenceEquals(openEvent, readyEvents[0])))
             {
                 errorMessage =
-                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' is missing its first call event. Reapply the phrase manually before saving.";
+                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has Open on a non-first call. Open is allowed only on the first Ready call.";
                 return false;
             }
 
-            float startBeat = firstCallEvent.Beat;
-            float cueIntervalBeats = Mathf.Max(0.001f, patternDefinition.RangedCueIntervalBeats);
-            float responseOffsetBeats = Mathf.Max(0.001f, patternDefinition.RangedResponseOffsetBeats);
+            if (callEvents.Count != responseEvents.Count)
+            {
+                errorMessage =
+                    $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has {callEvents.Count} call event(s) and {responseEvents.Count} response event(s). Match the counts before saving.";
+                return false;
+            }
+
+            if (callEvents.Count == 0 && openEvent == null)
+            {
+                return true;
+            }
+
+            callEvents.Sort(CompareRangedPhraseEvents);
+            responseEvents.Sort(CompareRangedPhraseEvents);
+
+            int cueCount = callEvents.Count;
+            int openStepOffset = openEvent != null ? 1 : 0;
+            int stepCount = (cueCount * 2) + openStepOffset;
+            int timingStepIndex = cueCount > 0 ? openStepOffset + cueCount : 0;
+            float firstResponseBeat = responseEvents.Count > 0 ? responseEvents[0].Beat : openEvent.Beat;
             string currentPatternSignature = patternDefinition.BuildSyncSignature();
             string assetPath = AssetDatabase.GetAssetPath(patternDefinition);
             string assetGuid = string.IsNullOrWhiteSpace(assetPath)
@@ -3909,53 +4038,92 @@ namespace KalBeat.Charting.Editor
                 assetGuid,
                 patternDefinition.PatternId,
                 currentPatternSignature,
-                startBeat + responseOffsetBeats,
-                cueCount,
-                expectedStepCount);
+                firstResponseBeat,
+                timingStepIndex,
+                stepCount);
 
             bool requiresSync = false;
+            if (openEvent != null)
+            {
+                if (openEvent.RangedAnchorIndex < 0 || openEvent.RangedAnchorIndex >= anchorCount)
+                {
+                    errorMessage =
+                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has open anchor index {openEvent.RangedAnchorIndex}. Use 0 to {anchorCount - 1}.";
+                    return false;
+                }
+
+                if (RangedPhraseEventNeedsSync(
+                        openEvent,
+                        patternDefinition.CombatKind,
+                        metadata,
+                        phraseId,
+                        0,
+                        openEvent.RangedAnchorIndex,
+                        openEvent.Beat,
+                        lane,
+                        0,
+                        CombatEventPhase.Ready,
+                        PlayerRelativeDirection.None,
+                        patternDefinition.EntryBandUnits,
+                        true))
+                {
+                    requiresSync = true;
+                }
+            }
+
             for (int i = 0; i < cueCount; i++)
             {
-                if (!eventsByStepIndex.TryGetValue(i, out ChartEventData callEvent) ||
-                    !eventsByStepIndex.TryGetValue(cueCount + i, out ChartEventData timingEvent))
+                ChartEventData callEvent = callEvents[i];
+                ChartEventData responseEvent = responseEvents[i];
+                int cueIndex = openEvent != null ? i + 1 : i;
+                int callStepIndex = openStepOffset + i;
+                int responseStepIndex = openStepOffset + cueCount + i;
+                if (callEvent.RangedAnchorIndex < 0 || callEvent.RangedAnchorIndex >= anchorCount)
                 {
                     errorMessage =
-                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' is missing one or more call/response events. Reapply the phrase manually before saving.";
+                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has call anchor index {callEvent.RangedAnchorIndex}. Use 0 to {anchorCount - 1}.";
                     return false;
                 }
 
-                if (callEvent.Kind != timingEvent.Kind)
+                if (responseEvent.Beat <= callEvent.Beat)
                 {
                     errorMessage =
-                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has a cue whose call/response kinds do not match. Convert both events together before saving.";
+                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' has a response at beat {responseEvent.Beat:0.###} that is not after its call at beat {callEvent.Beat:0.###}.";
                     return false;
                 }
 
-                float callBeat = startBeat + (i * cueIntervalBeats);
-                float responseBeat = callBeat + responseOffsetBeats;
-                int anchorIndex = i % anchorCount;
-                bool hasBlockingCall = TryFindBlockingForeignEvent(callBeat, lane, group.Events, out ChartEventData blockingCallEvent);
-                bool hasBlockingResponse = TryFindBlockingForeignEvent(responseBeat, lane, group.Events, out ChartEventData blockingResponseEvent);
-                if (hasBlockingCall || hasBlockingResponse)
-                {
-                    ChartEventData blockingEvent = blockingCallEvent != null ? blockingCallEvent : blockingResponseEvent;
-                    errorMessage =
-                        $"Linked ranged pattern '{GetPatternDisplayLabel(patternDefinition)}' would overlap another event near beat {blockingEvent.Beat:0.###}. Move that event or reapply the phrase manually.";
-                    return false;
-                }
-
-                if (!Mathf.Approximately(callEvent.Beat, callBeat) ||
-                    !Mathf.Approximately(timingEvent.Beat, responseBeat) ||
-                    callEvent.RangedAnchorIndex != anchorIndex ||
-                    timingEvent.RangedAnchorIndex != anchorIndex ||
-                    callEvent.RangedCueIndex != i ||
-                    timingEvent.RangedCueIndex != i ||
-                    !Mathf.Approximately(callEvent.EntryBandUnits, patternDefinition.EntryBandUnits) ||
-                    !Mathf.Approximately(timingEvent.EntryBandUnits, patternDefinition.EntryBandUnits) ||
-                    !string.Equals(callEvent.AppliedPatternInstanceId, instanceId, StringComparison.Ordinal) ||
-                    !string.Equals(timingEvent.AppliedPatternInstanceId, instanceId, StringComparison.Ordinal) ||
-                    !string.Equals(callEvent.AppliedPatternSignature, currentPatternSignature, StringComparison.Ordinal) ||
-                    !string.Equals(timingEvent.AppliedPatternSignature, currentPatternSignature, StringComparison.Ordinal))
+                CombatEventKind normalizedKind = callEvent.Kind == CombatEventKind.PlayerRangedAttack
+                    ? CombatEventKind.PlayerRangedAttack
+                    : patternDefinition.CombatKind;
+                PlayerRelativeDirection responseDirection = normalizedKind == CombatEventKind.RangedThreatDodgeOnly
+                    ? responseEvent.DirectionHint
+                    : PlayerRelativeDirection.None;
+                if (RangedPhraseEventNeedsSync(
+                        callEvent,
+                        normalizedKind,
+                        metadata,
+                        phraseId,
+                        cueIndex,
+                        callEvent.RangedAnchorIndex,
+                        callEvent.Beat,
+                        lane,
+                        callStepIndex,
+                        CombatEventPhase.Ready,
+                        PlayerRelativeDirection.None,
+                        patternDefinition.EntryBandUnits) ||
+                    RangedPhraseEventNeedsSync(
+                        responseEvent,
+                        normalizedKind,
+                        metadata,
+                        phraseId,
+                        cueIndex,
+                        callEvent.RangedAnchorIndex,
+                        responseEvent.Beat,
+                        lane,
+                        responseStepIndex,
+                        CombatEventPhase.Timing,
+                        responseDirection,
+                        patternDefinition.EntryBandUnits))
                 {
                     requiresSync = true;
                 }
@@ -3972,56 +4140,149 @@ namespace KalBeat.Charting.Editor
                 undoRecorded = true;
             }
 
+            if (openEvent != null)
+            {
+                ApplyRangedPhraseEvent(
+                    openEvent,
+                    patternDefinition.CombatKind,
+                    metadata,
+                    phraseId,
+                    0,
+                    openEvent.RangedAnchorIndex,
+                    openEvent.Beat,
+                    lane,
+                    0,
+                    CombatEventPhase.Ready,
+                    PlayerRelativeDirection.None,
+                    patternDefinition.EntryBandUnits,
+                    openEvent.NudgeMs,
+                    true);
+            }
+
             for (int i = 0; i < cueCount; i++)
             {
-                ChartEventData callEvent = eventsByStepIndex[i];
-                ChartEventData timingEvent = eventsByStepIndex[cueCount + i];
-                float callBeat = startBeat + (i * cueIntervalBeats);
-                float responseBeat = callBeat + responseOffsetBeats;
-                int anchorIndex = i % anchorCount;
-                CombatEventKind callKind = callEvent.Kind == CombatEventKind.PlayerRangedAttack
-                    ? CombatEventKind.PlayerRangedAttack
-                    : patternDefinition.CombatKind;
-                CombatEventKind timingKind = timingEvent.Kind == CombatEventKind.PlayerRangedAttack
+                ChartEventData callEvent = callEvents[i];
+                ChartEventData responseEvent = responseEvents[i];
+                int anchorIndex = callEvent.RangedAnchorIndex;
+                int cueIndex = openEvent != null ? i + 1 : i;
+                int callStepIndex = openStepOffset + i;
+                int responseStepIndex = openStepOffset + cueCount + i;
+                CombatEventKind normalizedKind = callEvent.Kind == CombatEventKind.PlayerRangedAttack
                     ? CombatEventKind.PlayerRangedAttack
                     : patternDefinition.CombatKind;
 
                 ApplyRangedPhraseEvent(
                     callEvent,
-                    callKind,
+                    normalizedKind,
                     metadata,
                     phraseId,
-                    i,
+                    cueIndex,
                     anchorIndex,
-                    callBeat,
+                    callEvent.Beat,
                     lane,
-                    i,
+                    callStepIndex,
                     CombatEventPhase.Ready,
                     PlayerRelativeDirection.None,
                     patternDefinition.EntryBandUnits,
                     callEvent.NudgeMs);
 
-                PlayerRelativeDirection timingDirection = timingKind == CombatEventKind.RangedThreatDodgeOnly
-                    ? timingEvent.DirectionHint
+                PlayerRelativeDirection responseDirection = normalizedKind == CombatEventKind.RangedThreatDodgeOnly
+                    ? responseEvent.DirectionHint
                     : PlayerRelativeDirection.None;
                 ApplyRangedPhraseEvent(
-                    timingEvent,
-                    timingKind,
+                    responseEvent,
+                    normalizedKind,
                     metadata,
                     phraseId,
-                    i,
+                    cueIndex,
                     anchorIndex,
-                    responseBeat,
+                    responseEvent.Beat,
                     lane,
-                    cueCount + i,
+                    responseStepIndex,
                     CombatEventPhase.Timing,
-                    timingDirection,
+                    responseDirection,
                     patternDefinition.EntryBandUnits,
-                    timingEvent.NudgeMs);
+                    responseEvent.NudgeMs);
             }
 
             groupChanged = true;
             return true;
+        }
+
+        private static bool RangedPhraseEventNeedsSync(
+            ChartEventData eventData,
+            CombatEventKind eventKind,
+            AppliedPatternMetadata metadata,
+            string phraseId,
+            int cueIndex,
+            int anchorIndex,
+            float beat,
+            int lane,
+            int stepIndex,
+            CombatEventPhase phase,
+            PlayerRelativeDirection directionHint,
+            float entryBandUnits,
+            bool rangedOpen = false)
+        {
+            PlayerRelativeDirection expectedDirectionHint = phase == CombatEventPhase.Timing
+                ? directionHint
+                : PlayerRelativeDirection.None;
+            return eventData.Kind != eventKind ||
+                   !Mathf.Approximately(eventData.Beat, beat) ||
+                   eventData.Lane != lane ||
+                   eventData.Phase != phase ||
+                   eventData.StepIndex != stepIndex ||
+                   eventData.ReadyCueType != ReadyCueType.None ||
+                   eventData.DirectionHint != expectedDirectionHint ||
+                   eventData.MovementResolveMode != MovementResolveMode.None ||
+                   !Mathf.Approximately(eventData.MoveUnits, 0f) ||
+                   !Mathf.Approximately(eventData.TargetBandUnits, 0f) ||
+                   eventData.MovementDirectionHint != MovementDirectionHint.None ||
+                   !Mathf.Approximately(eventData.EntryBandUnits, Mathf.Max(0f, entryBandUnits)) ||
+                   !Mathf.Approximately(eventData.PlayerKnockbackUnits, 0f) ||
+                   !Mathf.Approximately(eventData.MonsterKnockbackUnits, 0f) ||
+                   !string.Equals(eventData.RangedPhraseId, phraseId ?? string.Empty, StringComparison.Ordinal) ||
+                   eventData.RangedCueIndex != cueIndex ||
+                   eventData.RangedAnchorIndex != anchorIndex ||
+                   eventData.RangedOpen != rangedOpen ||
+                   AppliedPatternMetadataNeedsSync(eventData, metadata);
+        }
+
+        private static bool AppliedPatternMetadataNeedsSync(ChartEventData eventData, AppliedPatternMetadata metadata)
+        {
+            return !string.Equals(eventData.AppliedPatternInstanceId, metadata.InstanceId, StringComparison.Ordinal) ||
+                   !string.Equals(eventData.AppliedPatternAssetGuid, metadata.AssetGuid, StringComparison.Ordinal) ||
+                   !string.Equals(eventData.AppliedPatternId, metadata.PatternId, StringComparison.Ordinal) ||
+                   !string.Equals(eventData.AppliedPatternSignature, metadata.Signature, StringComparison.Ordinal) ||
+                   !Mathf.Approximately(eventData.AppliedPatternTimingBeat, metadata.TimingBeat) ||
+                   eventData.AppliedPatternTimingStepIndex != metadata.TimingStepIndex ||
+                   eventData.AppliedPatternStepCount != metadata.StepCount;
+        }
+
+        private static int CompareRangedPhraseEvents(ChartEventData left, ChartEventData right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return 1;
+            }
+
+            if (right == null)
+            {
+                return -1;
+            }
+
+            int beatCompare = left.Beat.CompareTo(right.Beat);
+            if (beatCompare != 0)
+            {
+                return beatCompare;
+            }
+
+            return left.StepIndex.CompareTo(right.StepIndex);
         }
 
         private static bool HasAppliedPatternLink(ChartEventData eventData)
@@ -4168,6 +4429,7 @@ namespace KalBeat.Charting.Editor
             eventData.RangedPhraseId = string.Empty;
             eventData.RangedCueIndex = -1;
             eventData.RangedAnchorIndex = -1;
+            eventData.RangedOpen = false;
         }
 
         private void MarkChartDirty()

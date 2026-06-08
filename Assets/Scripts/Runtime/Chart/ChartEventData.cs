@@ -25,6 +25,7 @@ namespace KalBeat.Charting
         [SerializeField] private string rangedPhraseId = string.Empty;
         [SerializeField] private int rangedCueIndex = -1;
         [SerializeField] private int rangedAnchorIndex = -1;
+        [SerializeField] private bool rangedOpen;
         [SerializeField] private string appliedPatternInstanceId = string.Empty;
         [SerializeField] private string appliedPatternAssetGuid = string.Empty;
         [SerializeField] private string appliedPatternId = string.Empty;
@@ -139,6 +140,12 @@ namespace KalBeat.Charting
         {
             get => rangedAnchorIndex;
             set => rangedAnchorIndex = value;
+        }
+
+        public bool RangedOpen
+        {
+            get => rangedOpen;
+            set => rangedOpen = value;
         }
 
         public string AppliedPatternInstanceId

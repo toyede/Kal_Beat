@@ -87,6 +87,11 @@ namespace KalBeat.Combat
                 return;
             }
 
+            if (resolvedStep.RangedOpen)
+            {
+                return;
+            }
+
             if (resolvedStep.Kind == CombatEventKind.RangedThreatCounterable)
             {
                 if (resolvedStep.Phase == CombatEventPhase.Ready)
@@ -181,6 +186,7 @@ namespace KalBeat.Combat
             if (resolvedStep.Kind == CombatEventKind.PlayerRangedAttack)
             {
                 HideReadyMark();
+                TryStartPostRangedRecovery(resolvedStep);
                 return;
             }
 
@@ -188,6 +194,13 @@ namespace KalBeat.Combat
             {
                 TryAssignRangedAttackVisualView();
                 rangedAttackVisualView?.ResolveCounterProjectile(resolvedStep, grade);
+                TryStartPostRangedRecovery(resolvedStep);
+                return;
+            }
+
+            if (resolvedStep.Kind == CombatEventKind.RangedThreatDodgeOnly)
+            {
+                TryStartPostRangedRecovery(resolvedStep);
                 return;
             }
 
@@ -226,6 +239,18 @@ namespace KalBeat.Combat
             {
                 rangedAttackVisualView = gameObject.AddComponent<RangedAttackVisualView>();
             }
+        }
+
+        private void TryStartPostRangedRecovery(ResolvedCombatStep resolvedStep)
+        {
+            if (resolvedStep == null || !resolvedStep.HasPostRangedRecovery || DuelRoot == null)
+            {
+                return;
+            }
+
+            MoveToWorldPosition(
+                DuelRoot.ConvertDuelLocalToWorld(resolvedStep.PostRangedRecoveryMonsterLocalPos),
+                resolvedStep.PostRangedRecoveryDurationSec);
         }
 
         private void OnValidate()

@@ -8,7 +8,7 @@ namespace KalBeat.Charting
 {
     public static class ChartResolvedTimelineBuilder
     {
-        private const string ResolverVersion = "player-ranged-attack-v1";
+        private const string ResolverVersion = "ranged-open-post-recovery-v1";
         private const float DefaultMeleeDodgeResolveUnits = 4f;
         private const float DefaultRangedDodgeMoveUnits = 4f;
         private const float DefaultRangedDodgeBandUnits = 4f;
@@ -88,7 +88,8 @@ namespace KalBeat.Charting
                         builder.Append(':')
                             .Append(eventData.RangedPhraseId).Append(':')
                             .Append(eventData.RangedCueIndex).Append(':')
-                            .Append(eventData.RangedAnchorIndex);
+                            .Append(eventData.RangedAnchorIndex).Append(':')
+                            .Append(eventData.RangedOpen);
                     }
 
                     builder.Append('|');
@@ -174,6 +175,8 @@ namespace KalBeat.Charting
                 CombatEventKind.RangedThreatCounterable);
             Dictionary<string, RangedPhraseFrame> rangedPhraseFrames =
                 new Dictionary<string, RangedPhraseFrame>(StringComparer.Ordinal);
+            Dictionary<ChartEventData, float> postRangedRecoveryTargets =
+                BuildPostRangedRecoveryEntryBandUnits(orderedEvents);
 
             for (int i = 0; i < orderedEvents.Count; i++)
             {
@@ -204,7 +207,9 @@ namespace KalBeat.Charting
                 }
 
                 float currentBandUnits = CombatDuelMath.GetBandUnits(currentPlayerLocalPosition, currentMonsterLocalPosition);
-                if (eventData.StepIndex == 0 && !Mathf.Approximately(eventData.EntryBandUnits, currentBandUnits))
+                if (eventData.StepIndex == 0 &&
+                    !IsRangedCueKind(eventData.Kind) &&
+                    !Mathf.Approximately(eventData.EntryBandUnits, currentBandUnits))
                 {
                     errorMessage =
                         $"EntryBandUnits mismatch at beat {eventData.Beat:0.###}. Expected {currentBandUnits:0.###}, but event requires {eventData.EntryBandUnits:0.###}.";
@@ -255,7 +260,8 @@ namespace KalBeat.Charting
                     MonsterKnockbackUnits = eventData.MonsterKnockbackUnits,
                     RangedPhraseId = eventData.RangedPhraseId,
                     RangedCueIndex = eventData.RangedCueIndex,
-                    RangedAnchorIndex = eventData.RangedAnchorIndex
+                    RangedAnchorIndex = eventData.RangedAnchorIndex,
+                    RangedOpen = eventData.RangedOpen
                 };
 
                 Vector2 endPlayerLocalPosition = currentPlayerLocalPosition;
@@ -327,7 +333,7 @@ namespace KalBeat.Charting
                             }
                         }
 
-                        if (eventData.Kind == CombatEventKind.RangedThreatCounterable)
+                        if (eventData.Kind == CombatEventKind.RangedThreatCounterable && !eventData.RangedOpen)
                         {
                             Vector2 projectilePlayerLocalPosition = hasRangedPhraseFrame
                                 ? rangedPhraseFrame.ResponsePlayerLocalPosition
@@ -476,6 +482,22 @@ namespace KalBeat.Charting
                         errorMessage = $"Unsupported phase {eventData.Phase}.";
                         chart.ResolvedTimeline.SetInvalid(errorMessage);
                         return false;
+                }
+
+                if (postRangedRecoveryTargets.TryGetValue(eventData, out float postRangedRecoveryEntryBandUnits))
+                {
+                    if (!TryApplyPostRangedRecovery(
+                            eventData,
+                            monsterDefinition,
+                            endPlayerLocalPosition,
+                            ref endMonsterLocalPosition,
+                            postRangedRecoveryEntryBandUnits,
+                            resolvedStep,
+                            out errorMessage))
+                    {
+                        chart.ResolvedTimeline.SetInvalid(errorMessage);
+                        return false;
+                    }
                 }
 
                 resolvedStep.MonsterDurationSec = monsterDurationSec;
@@ -654,6 +676,135 @@ namespace KalBeat.Charting
                 responseBandUnits);
             rangedPhraseFrames.Add(key, phraseFrame);
             isNewFrame = true;
+            return true;
+        }
+
+        private static Dictionary<ChartEventData, float> BuildPostRangedRecoveryEntryBandUnits(
+            List<ChartEventData> orderedEvents)
+        {
+            Dictionary<ChartEventData, float> recoveryTargets = new Dictionary<ChartEventData, float>();
+            if (orderedEvents == null)
+            {
+                return recoveryTargets;
+            }
+
+            Dictionary<string, int> lastRangedTimingIndexByPhrase = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int i = 0; i < orderedEvents.Count; i++)
+            {
+                ChartEventData eventData = orderedEvents[i];
+                if (eventData == null ||
+                    eventData.Phase != CombatEventPhase.Timing ||
+                    !IsRangedPhraseKind(eventData.Kind))
+                {
+                    continue;
+                }
+
+                lastRangedTimingIndexByPhrase[BuildRangedPhraseFrameKey(eventData)] = i;
+            }
+
+            foreach (KeyValuePair<string, int> pair in lastRangedTimingIndexByPhrase)
+            {
+                int rangedTimingIndex = pair.Value;
+                if (rangedTimingIndex < 0 || rangedTimingIndex >= orderedEvents.Count)
+                {
+                    continue;
+                }
+
+                ChartEventData rangedTimingEvent = orderedEvents[rangedTimingIndex];
+                if (TryFindNextPostRangedRecoveryEntryBand(
+                        orderedEvents,
+                        rangedTimingIndex + 1,
+                        out float targetEntryBandUnits))
+                {
+                    recoveryTargets[rangedTimingEvent] = targetEntryBandUnits;
+                }
+            }
+
+            return recoveryTargets;
+        }
+
+        private static bool TryFindNextPostRangedRecoveryEntryBand(
+            List<ChartEventData> orderedEvents,
+            int startIndex,
+            out float targetEntryBandUnits)
+        {
+            targetEntryBandUnits = 0f;
+            if (orderedEvents == null)
+            {
+                return false;
+            }
+
+            for (int i = Mathf.Max(0, startIndex); i < orderedEvents.Count; i++)
+            {
+                ChartEventData eventData = orderedEvents[i];
+                if (eventData == null || eventData.Kind == CombatEventKind.None)
+                {
+                    continue;
+                }
+
+                if (eventData.StepIndex != 0)
+                {
+                    continue;
+                }
+
+                if (IsRangedCueKind(eventData.Kind))
+                {
+                    return false;
+                }
+
+                if (IsPostRangedRecoveryTargetKind(eventData.Kind) && eventData.EntryBandUnits > 0f)
+                {
+                    targetEntryBandUnits = eventData.EntryBandUnits;
+                    return true;
+                }
+
+                return false;
+            }
+
+            return false;
+        }
+
+        private static bool TryApplyPostRangedRecovery(
+            ChartEventData eventData,
+            MonsterDefinition monsterDefinition,
+            Vector2 endPlayerLocalPosition,
+            ref Vector2 endMonsterLocalPosition,
+            float targetEntryBandUnits,
+            ResolvedCombatStep resolvedStep,
+            out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            if (eventData == null ||
+                monsterDefinition == null ||
+                resolvedStep == null ||
+                targetEntryBandUnits <= 0f)
+            {
+                return true;
+            }
+
+            float currentBandUnits = CombatDuelMath.GetBandUnits(endPlayerLocalPosition, endMonsterLocalPosition);
+            Vector2 recoveryMonsterLocalPosition = CombatDuelMath.ResolveForwardToBand(
+                endPlayerLocalPosition,
+                endMonsterLocalPosition,
+                targetEntryBandUnits);
+
+            if (Approximately(endMonsterLocalPosition, recoveryMonsterLocalPosition))
+            {
+                return true;
+            }
+
+            float recoveryMoveUnits = Vector2.Distance(endMonsterLocalPosition, recoveryMonsterLocalPosition);
+            if (!monsterDefinition.TryGetReadyMoveDurationSec(recoveryMoveUnits, out float recoveryDurationSec))
+            {
+                errorMessage =
+                    $"Ranged post-response recovery at beat {eventData.Beat:0.###} requires ReadyMoveDuration for {recoveryMoveUnits:0.###} units (band {currentBandUnits:0.###} -> {targetEntryBandUnits:0.###}).";
+                return false;
+            }
+
+            resolvedStep.HasPostRangedRecovery = true;
+            resolvedStep.PostRangedRecoveryMonsterLocalPos = recoveryMonsterLocalPosition;
+            resolvedStep.PostRangedRecoveryDurationSec = recoveryDurationSec;
+            endMonsterLocalPosition = recoveryMonsterLocalPosition;
             return true;
         }
 
@@ -918,6 +1069,7 @@ namespace KalBeat.Charting
         private static bool ShouldRequireReadyCuePath(ChartEventData eventData)
         {
             return eventData != null &&
+                   !eventData.RangedOpen &&
                    eventData.Phase == CombatEventPhase.Ready &&
                    (eventData.ReadyCueType == ReadyCueType.Pose ||
                     eventData.ReadyCueType == ReadyCueType.Move ||
@@ -1010,6 +1162,13 @@ namespace KalBeat.Charting
         {
             return IsRangedPhraseKind(kind) ||
                    kind == CombatEventKind.PlayerRangedAttack;
+        }
+
+        private static bool IsPostRangedRecoveryTargetKind(CombatEventKind kind)
+        {
+            return kind == CombatEventKind.MeleeThreatDodgeOnly ||
+                   kind == CombatEventKind.MeleeThreatCounterable ||
+                   kind == CombatEventKind.PlayerDashAttack;
         }
 
         private static bool IsPatternCompatibleWithEvent(PatternDefinition patternDefinition, CombatEventKind eventKind)
