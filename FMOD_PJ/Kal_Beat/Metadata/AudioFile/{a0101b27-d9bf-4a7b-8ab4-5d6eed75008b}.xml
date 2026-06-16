@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.02.00">
+	<object class="AudioFile" id="{a0101b27-d9bf-4a7b-8ab4-5d6eed75008b}">
+		<property name="assetPath">
+			<value>Skyforge finale_2.wav</value>
+		</property>
+		<property name="isStreaming">
+			<value>true</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>221.15997916666666</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{3aa99c08-2c53-4b71-97f2-a06c242eefeb}</destination>
+		</relationship>
+	</object>
+</objects>

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83fab96271ea95f4085a481d304ffeff, type: 3}
+  m_Name: Test_Song2
+  m_EditorClassIdentifier: 
+  meta:
+    songId: 002
+    songName: SkyForge Finale
+    previewAudioClip: {fileID: 0}
+    fmodEventPath: event:/Skyforge finale_2
+    bpm: 92
+    offsetSec: 0.139
+    songLengthSec: 221.16
+    gridDivision: 4
+    laneCount: 4
+    maxEventsPerSlot: 4
+    laneBindings:
+    - bindingType: 0
+      bindingId: 
+    - bindingType: 0
+      bindingId: 
+    - bindingType: 0
+      bindingId: 
+    - bindingType: 0
+      bindingId: 
+  events: []
+  resolvedTimeline:
+    cacheVersion: 1
+    sourceSignature: 
+    isValid: 0
+    invalidReason: 
+    steps: []
