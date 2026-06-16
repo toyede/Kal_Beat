@@ -187,7 +187,7 @@ namespace KalBeat.Combat
                 grade = CombatJudgementGrade.Good;
                 consumeTarget = true;
             }
-            else if (deltaMs > goodWindowMs && deltaMs <= missWindowMs)
+            else if (absDeltaMs <= missWindowMs)
             {
                 grade = CombatJudgementGrade.Miss;
                 consumeTarget = true;
