@@ -20,6 +20,7 @@ namespace KalBeat.Charting.Editor
         private const float MinTimelineWidth = 900f;
         private const float MinTimelineHeight = 320f;
         private const float EventBoxWidth = 18f;
+        private const float SelectionDragThreshold = 4f;
         private const string MetronomeEventSearchName = "metronome";
         private const string EventPreviewEventSearchName = "finger_snap";
         private const float PreviewTriggerEpsilon = 0.0001f;
@@ -36,9 +37,16 @@ namespace KalBeat.Charting.Editor
         private static readonly Color GridMinorColor = new Color(0.3f, 0.3f, 0.33f, 0.35f);
         private static readonly Color CursorColor = new Color(0.95f, 0.7f, 0.15f, 1f);
         private static readonly Color SelectedOutlineColor = new Color(1f, 1f, 1f, 0.9f);
+        private static readonly Color MultiSelectedOutlineColor = new Color(0.3f, 0.75f, 1f, 0.95f);
+        private static readonly Color SelectionBoxFillColor = new Color(0.3f, 0.55f, 1f, 0.16f);
+        private static readonly Color SelectionBoxOutlineColor = new Color(0.45f, 0.75f, 1f, 0.9f);
 
         private ChartData currentChart;
         private ChartEventData selectedEvent;
+        private readonly List<ChartEventData> selectedEvents = new List<ChartEventData>();
+        private readonly List<ChartEventData> draggedEvents = new List<ChartEventData>();
+        private readonly List<float> draggedEventStartBeats = new List<float>();
+        private readonly List<int> draggedEventStartLanes = new List<int>();
         private readonly FmodEditorPreviewBackend fmodPreviewBackend = new FmodEditorPreviewBackend();
 
         private Vector2 leftPanelScroll;
@@ -55,8 +63,12 @@ namespace KalBeat.Charting.Editor
         private float timelineViewportWidth;
         private float draggedBeat;
         private float dragBeatPointerOffset;
+        private float dragReferenceStartBeat;
+        private float draggedBeatDelta;
         private int selectedLane;
         private int draggedLane;
+        private int dragReferenceStartLane;
+        private int draggedLaneDelta;
         private string metronomePreviewEventPath = string.Empty;
         private string eventPreviewEventPath = string.Empty;
         private TextAsset jsonImportAsset;
@@ -68,9 +80,12 @@ namespace KalBeat.Charting.Editor
         private bool metaPanelExpanded = true;
         private bool snapEnabled = true;
         private bool isDraggingEvent;
+        private bool isMarqueeSelecting;
         private bool previewPaused;
         private bool previewWasPlaying;
         private ChartEventData draggedEvent;
+        private Vector2 marqueeStartLocalPosition;
+        private Vector2 marqueeCurrentLocalPosition;
 
         private ChartValidationResult lastValidation;
 
@@ -702,6 +717,7 @@ namespace KalBeat.Charting.Editor
             DrawTimelineGrid(totalBeats, laneCount);
             DrawCursorLine(laneCount);
             DrawEvents();
+            DrawMarqueeSelection();
         }
 
         private void DrawTimelineGrid(float totalBeats, int laneCount)
@@ -749,6 +765,11 @@ namespace KalBeat.Charting.Editor
                 Rect eventRect = GetEventRect(GetDisplayedBeat(eventData), GetDisplayedLane(eventData));
                 EditorGUI.DrawRect(eventRect, GetEventColor(eventData));
 
+                if (IsEventSelected(eventData))
+                {
+                    DrawOutline(eventRect, MultiSelectedOutlineColor, 2f);
+                }
+
                 if (ReferenceEquals(selectedEvent, eventData))
                 {
                     DrawOutline(eventRect, SelectedOutlineColor, 2f);
@@ -756,6 +777,23 @@ namespace KalBeat.Charting.Editor
 
                 GUI.Label(eventRect, GetEventShortLabel(eventData), EditorStyles.whiteMiniLabel);
             }
+        }
+
+        private void DrawMarqueeSelection()
+        {
+            if (!isMarqueeSelecting)
+            {
+                return;
+            }
+
+            Rect selectionRect = GetNormalizedRect(marqueeStartLocalPosition, marqueeCurrentLocalPosition);
+            if (selectionRect.width <= 0.5f && selectionRect.height <= 0.5f)
+            {
+                return;
+            }
+
+            EditorGUI.DrawRect(selectionRect, SelectionBoxFillColor);
+            DrawOutline(selectionRect, SelectionBoxOutlineColor, 1f);
         }
 
         private void DrawRightPanel()
@@ -903,11 +941,7 @@ namespace KalBeat.Charting.Editor
 
             if (GUILayout.Button("Move Event To Cursor"))
             {
-                RecordChartChange("Move Chart Event");
-                selectedEvent.Beat = snapEnabled ? QuantizeBeat(cursorBeat) : cursorBeat;
-                selectedEvent.Lane = Mathf.Clamp(selectedLane, 0, laneCount - 1);
-                SortEvents();
-                MarkChartDirty();
+                MoveSelectedEventsToCursor();
             }
 
             EditorGUILayout.EndScrollView();
@@ -1022,6 +1056,23 @@ namespace KalBeat.Charting.Editor
                 }
             }
 
+            if (isMarqueeSelecting)
+            {
+                if (currentEvent.type == EventType.MouseDrag && currentEvent.button == 0)
+                {
+                    UpdateMarqueeSelection(localPosition);
+                    currentEvent.Use();
+                    return;
+                }
+
+                if (currentEvent.type == EventType.MouseUp && currentEvent.button == 0)
+                {
+                    CompleteMarqueeSelection();
+                    currentEvent.Use();
+                    return;
+                }
+            }
+
             if (!viewportRect.Contains(currentEvent.mousePosition))
             {
                 return;
@@ -1051,7 +1102,15 @@ namespace KalBeat.Charting.Editor
             bool wasPlaying = IsPreviewPlaying();
             if (TryGetEventAtPosition(localPosition, out ChartEventData hitEvent))
             {
-                selectedEvent = hitEvent;
+                if (!IsEventSelected(hitEvent))
+                {
+                    SetSingleSelectedEvent(hitEvent);
+                }
+                else
+                {
+                    selectedEvent = hitEvent;
+                }
+
                 cursorBeat = hitEvent.Beat;
                 selectedLane = hitEvent.Lane;
                 MovePreviewToCursorAndPause(wasPlaying);
@@ -1060,9 +1119,10 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
-            selectedEvent = null;
+            ClearSelectedEvents();
             cursorBeat = GetBeatFromPosition(localPosition.x);
             selectedLane = GetLaneFromPosition(localPosition.y);
+            BeginMarqueeSelection(localPosition);
             MovePreviewToCursorAndPause(wasPlaying);
             Repaint();
         }
@@ -1074,18 +1134,30 @@ namespace KalBeat.Charting.Editor
 
             if (TryGetEventAtPosition(localPosition, out ChartEventData hitEvent))
             {
-                selectedEvent = hitEvent;
+                if (!IsEventSelected(hitEvent))
+                {
+                    SetSingleSelectedEvent(hitEvent);
+                }
+                else
+                {
+                    selectedEvent = hitEvent;
+                }
+
                 cursorBeat = hitEvent.Beat;
                 selectedLane = hitEvent.Lane;
                 MovePreviewToCursorAndPause(wasPlaying);
 
-                menu.AddItem(new GUIContent("Delete"), false, DeleteSelectedEvent);
-                menu.AddSeparator(string.Empty);
-                AddConvertMenuItems(menu);
+                string deleteLabel = selectedEvents.Count > 1 ? "Delete Selected" : "Delete";
+                menu.AddItem(new GUIContent(deleteLabel), false, DeleteSelectedEvent);
+                if (selectedEvents.Count <= 1)
+                {
+                    menu.AddSeparator(string.Empty);
+                    AddConvertMenuItems(menu);
+                }
             }
             else
             {
-                selectedEvent = null;
+                ClearSelectedEvents();
                 cursorBeat = GetBeatFromPosition(localPosition.x);
                 selectedLane = GetLaneFromPosition(localPosition.y);
                 MovePreviewToCursorAndPause(wasPlaying);
@@ -1161,7 +1233,7 @@ namespace KalBeat.Charting.Editor
                 ClearAppliedPatternLink(eventData);
             }
 
-            selectedEvent = eventData;
+            SetSingleSelectedEvent(eventData);
             cursorBeat = eventData.Beat;
             selectedLane = eventData.Lane;
 
@@ -1470,7 +1542,7 @@ namespace KalBeat.Charting.Editor
                 firstTimingEvent ??= timingEvent;
             }
 
-            selectedEvent = firstTimingEvent;
+            SetSingleSelectedEvent(firstTimingEvent);
             cursorBeat = firstTimingEvent != null ? firstTimingEvent.Beat : startBeat;
             selectedLane = targetLane;
             SortEvents();
@@ -1567,7 +1639,7 @@ namespace KalBeat.Charting.Editor
                 firstTimingEvent ??= timingEvent;
             }
 
-            selectedEvent = firstTimingEvent;
+            SetSingleSelectedEvent(firstTimingEvent);
             cursorBeat = firstTimingEvent != null ? firstTimingEvent.Beat : startBeat;
             selectedLane = targetLane;
             SortEvents();
@@ -1788,7 +1860,7 @@ namespace KalBeat.Charting.Editor
                     appliedPatternMetadata);
             }
 
-            selectedEvent = targetEvents[timingStepIndex];
+            SetSingleSelectedEvent(targetEvents[timingStepIndex]);
             SortEvents();
             MarkChartDirty();
             ShowNotification(new GUIContent($"Applied pattern '{GetPatternDisplayLabel(patternDefinition)}'."));
@@ -1796,31 +1868,115 @@ namespace KalBeat.Charting.Editor
 
         private void DeleteSelectedEvent()
         {
-            if (currentChart == null || selectedEvent == null)
+            if (currentChart == null || currentChart.Events == null)
             {
                 return;
             }
 
             ClearDraggedEventState();
+            ClearMarqueeSelectionState();
 
-            if (!currentChart.Events.Contains(selectedEvent))
+            List<ChartEventData> deleteTargets = BuildSelectedEventList();
+            if (deleteTargets.Count == 0)
             {
-                selectedEvent = null;
+                ClearSelectedEvents();
                 return;
             }
 
-            if (IsProtectedRangedPhraseStartEvent(selectedEvent))
+            for (int i = 0; i < deleteTargets.Count; i++)
             {
-                EditorUtility.DisplayDialog(
-                    "Cannot Delete Ranged Start",
-                    "The first Ready event in a ranged phrase is required as the phrase start marker. Turn on Open if this anchor should not fire an attack.",
-                    "OK");
+                if (IsProtectedRangedPhraseStartEvent(deleteTargets[i]))
+                {
+                    EditorUtility.DisplayDialog(
+                        "Cannot Delete Ranged Start",
+                        "The first Ready event in a ranged phrase is required as the phrase start marker. Turn on Open if this anchor should not fire an attack.",
+                        "OK");
+                    return;
+                }
+            }
+
+            RecordChartChange(deleteTargets.Count > 1 ? "Delete Chart Events" : "Delete Chart Event");
+            for (int i = 0; i < deleteTargets.Count; i++)
+            {
+                currentChart.Events.Remove(deleteTargets[i]);
+            }
+
+            ClearSelectedEvents();
+            MarkChartDirty();
+        }
+
+        private List<ChartEventData> BuildSelectedEventList()
+        {
+            List<ChartEventData> events = new List<ChartEventData>();
+            if (currentChart == null || currentChart.Events == null)
+            {
+                return events;
+            }
+
+            for (int i = 0; i < selectedEvents.Count; i++)
+            {
+                ChartEventData eventData = selectedEvents[i];
+                if (eventData != null && currentChart.Events.Contains(eventData) && !events.Contains(eventData))
+                {
+                    events.Add(eventData);
+                }
+            }
+
+            if (events.Count == 0 && selectedEvent != null && currentChart.Events.Contains(selectedEvent))
+            {
+                events.Add(selectedEvent);
+            }
+
+            return events;
+        }
+
+        private void MoveSelectedEventsToCursor()
+        {
+            if (currentChart == null || selectedEvent == null)
+            {
                 return;
             }
 
-            RecordChartChange("Delete Chart Event");
-            currentChart.Events.Remove(selectedEvent);
-            selectedEvent = null;
+            List<ChartEventData> moveTargets = BuildSelectedEventList();
+            if (moveTargets.Count == 0)
+            {
+                return;
+            }
+
+            float targetBeat = snapEnabled ? QuantizeBeat(cursorBeat) : cursorBeat;
+            int targetLane = Mathf.Clamp(selectedLane, 0, Mathf.Max(0, currentChart.Meta.LaneCount - 1));
+            float beatDelta = targetBeat - selectedEvent.Beat;
+            int laneDelta = targetLane - selectedEvent.Lane;
+
+            float minTargetBeat = float.MaxValue;
+            int minLane = int.MaxValue;
+            int maxLane = int.MinValue;
+            for (int i = 0; i < moveTargets.Count; i++)
+            {
+                minTargetBeat = Mathf.Min(minTargetBeat, moveTargets[i].Beat);
+                minLane = Mathf.Min(minLane, moveTargets[i].Lane);
+                maxLane = Mathf.Max(maxLane, moveTargets[i].Lane);
+            }
+
+            beatDelta = Mathf.Max(beatDelta, -minTargetBeat);
+            int maxLaneIndex = Mathf.Max(0, currentChart.Meta.LaneCount - 1);
+            laneDelta = Mathf.Clamp(laneDelta, -minLane, maxLaneIndex - maxLane);
+
+            if (Mathf.Approximately(beatDelta, 0f) && laneDelta == 0)
+            {
+                return;
+            }
+
+            RecordChartChange(moveTargets.Count > 1 ? "Move Chart Events" : "Move Chart Event");
+            for (int i = 0; i < moveTargets.Count; i++)
+            {
+                moveTargets[i].Beat = Mathf.Max(0f, moveTargets[i].Beat + beatDelta);
+                moveTargets[i].Lane = Mathf.Clamp(moveTargets[i].Lane + laneDelta, 0, maxLaneIndex);
+            }
+
+            cursorBeat = selectedEvent.Beat;
+            selectedLane = selectedEvent.Lane;
+            SortEvents();
             MarkChartDirty();
         }
 
@@ -1844,8 +2000,9 @@ namespace KalBeat.Charting.Editor
 
             RecordChartChange("Clear Chart Events");
             currentChart.Events.Clear();
-            selectedEvent = null;
+            ClearSelectedEvents();
             ClearDraggedEventState();
+            ClearMarqueeSelectionState();
             MarkChartDirty();
         }
 
@@ -2117,7 +2274,7 @@ namespace KalBeat.Charting.Editor
             currentChart.Events.Clear();
             currentChart.Events.AddRange(importData.Events);
 
-            selectedEvent = null;
+            ClearSelectedEvents();
             cursorBeat = 0f;
             selectedLane = 0;
 
@@ -2156,8 +2313,9 @@ namespace KalBeat.Charting.Editor
         {
             StopPreviewAudio(false);
             currentChart = chart;
-            selectedEvent = null;
+            ClearSelectedEvents();
             ClearDraggedEventState();
+            ClearMarqueeSelectionState();
             leftPanelScroll = Vector2.zero;
             timelineScroll = Vector2.zero;
             rightPanelScroll = Vector2.zero;
@@ -2196,7 +2354,7 @@ namespace KalBeat.Charting.Editor
             {
                 cursorBeat = 0f;
                 selectedLane = 0;
-                selectedEvent = null;
+                ClearSelectedEvents();
                 return;
             }
 
@@ -2206,6 +2364,23 @@ namespace KalBeat.Charting.Editor
             if (selectedEvent != null && !currentChart.Events.Contains(selectedEvent))
             {
                 selectedEvent = null;
+            }
+
+            for (int i = selectedEvents.Count - 1; i >= 0; i--)
+            {
+                if (selectedEvents[i] == null || !currentChart.Events.Contains(selectedEvents[i]))
+                {
+                    selectedEvents.RemoveAt(i);
+                }
+            }
+
+            if (selectedEvent == null && selectedEvents.Count > 0)
+            {
+                selectedEvent = selectedEvents[0];
+            }
+            else if (selectedEvent != null && !selectedEvents.Contains(selectedEvent))
+            {
+                selectedEvents.Insert(0, selectedEvent);
             }
 
             if (draggedEvent != null && !currentChart.Events.Contains(draggedEvent))
@@ -2547,10 +2722,24 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
+            if (!IsEventSelected(eventData))
+            {
+                SetSingleSelectedEvent(eventData);
+            }
+            else
+            {
+                selectedEvent = eventData;
+            }
+
             draggedEvent = eventData;
             draggedBeat = eventData.Beat;
             draggedLane = eventData.Lane;
+            dragReferenceStartBeat = eventData.Beat;
+            dragReferenceStartLane = eventData.Lane;
+            draggedBeatDelta = 0f;
+            draggedLaneDelta = 0;
             dragBeatPointerOffset = Mathf.Max(0f, localPosition.x / pixelsPerBeat) - eventData.Beat;
+            BuildDraggedEventSnapshot(eventData);
             isDraggingEvent = true;
         }
 
@@ -2562,8 +2751,13 @@ namespace KalBeat.Charting.Editor
             }
 
             float rawBeat = Mathf.Max(0f, (localPosition.x / pixelsPerBeat) - dragBeatPointerOffset);
-            draggedBeat = snapEnabled ? QuantizeBeat(rawBeat) : rawBeat;
-            draggedLane = GetLaneFromPosition(localPosition.y);
+            float targetBeat = snapEnabled ? QuantizeBeat(rawBeat) : rawBeat;
+            draggedBeatDelta = ClampDraggedBeatDelta(targetBeat - dragReferenceStartBeat);
+            draggedBeat = dragReferenceStartBeat + draggedBeatDelta;
+
+            int targetLane = GetLaneFromPosition(localPosition.y);
+            draggedLaneDelta = ClampDraggedLaneDelta(targetLane - dragReferenceStartLane);
+            draggedLane = dragReferenceStartLane + draggedLaneDelta;
             cursorBeat = draggedBeat;
             selectedLane = draggedLane;
             Repaint();
@@ -2577,12 +2771,25 @@ namespace KalBeat.Charting.Editor
                 return;
             }
 
-            bool changed = !Mathf.Approximately(draggedEvent.Beat, draggedBeat) || draggedEvent.Lane != draggedLane;
+            bool changed = !Mathf.Approximately(draggedBeatDelta, 0f) || draggedLaneDelta != 0;
             if (changed)
             {
-                RecordChartChange("Drag Chart Event");
-                draggedEvent.Beat = draggedBeat;
-                draggedEvent.Lane = draggedLane;
+                RecordChartChange(draggedEvents.Count > 1 ? "Drag Chart Events" : "Drag Chart Event");
+                for (int i = 0; i < draggedEvents.Count; i++)
+                {
+                    ChartEventData eventData = draggedEvents[i];
+                    if (eventData == null)
+                    {
+                        continue;
+                    }
+
+                    eventData.Beat = Mathf.Max(0f, draggedEventStartBeats[i] + draggedBeatDelta);
+                    eventData.Lane = Mathf.Clamp(
+                        draggedEventStartLanes[i] + draggedLaneDelta,
+                        0,
+                        Mathf.Max(0, currentChart.Meta.LaneCount - 1));
+                }
+
                 SortEvents();
                 MarkChartDirty();
             }
@@ -2601,6 +2808,87 @@ namespace KalBeat.Charting.Editor
             draggedBeat = 0f;
             draggedLane = 0;
             dragBeatPointerOffset = 0f;
+            dragReferenceStartBeat = 0f;
+            dragReferenceStartLane = 0;
+            draggedBeatDelta = 0f;
+            draggedLaneDelta = 0;
+            draggedEvents.Clear();
+            draggedEventStartBeats.Clear();
+            draggedEventStartLanes.Clear();
+        }
+
+        private void BuildDraggedEventSnapshot(ChartEventData fallbackEvent)
+        {
+            draggedEvents.Clear();
+            draggedEventStartBeats.Clear();
+            draggedEventStartLanes.Clear();
+
+            List<ChartEventData> sourceEvents = selectedEvents.Count > 0 ? selectedEvents : null;
+            if (sourceEvents != null)
+            {
+                for (int i = 0; i < sourceEvents.Count; i++)
+                {
+                    AddDraggedEventSnapshot(sourceEvents[i]);
+                }
+            }
+
+            if (draggedEvents.Count == 0)
+            {
+                AddDraggedEventSnapshot(fallbackEvent);
+            }
+        }
+
+        private void AddDraggedEventSnapshot(ChartEventData eventData)
+        {
+            if (eventData == null ||
+                currentChart == null ||
+                currentChart.Events == null ||
+                !currentChart.Events.Contains(eventData) ||
+                draggedEvents.Contains(eventData))
+            {
+                return;
+            }
+
+            draggedEvents.Add(eventData);
+            draggedEventStartBeats.Add(eventData.Beat);
+            draggedEventStartLanes.Add(eventData.Lane);
+        }
+
+        private float ClampDraggedBeatDelta(float requestedDelta)
+        {
+            if (draggedEventStartBeats.Count == 0)
+            {
+                return requestedDelta;
+            }
+
+            float minStartBeat = float.MaxValue;
+            for (int i = 0; i < draggedEventStartBeats.Count; i++)
+            {
+                minStartBeat = Mathf.Min(minStartBeat, draggedEventStartBeats[i]);
+            }
+
+            return Mathf.Max(requestedDelta, -minStartBeat);
+        }
+
+        private int ClampDraggedLaneDelta(int requestedDelta)
+        {
+            if (currentChart == null || currentChart.Meta == null || draggedEventStartLanes.Count == 0)
+            {
+                return requestedDelta;
+            }
+
+            int minLane = int.MaxValue;
+            int maxLane = int.MinValue;
+            for (int i = 0; i < draggedEventStartLanes.Count; i++)
+            {
+                minLane = Mathf.Min(minLane, draggedEventStartLanes[i]);
+                maxLane = Mathf.Max(maxLane, draggedEventStartLanes[i]);
+            }
+
+            int maxLaneIndex = Mathf.Max(0, currentChart.Meta.LaneCount - 1);
+            int minAllowedDelta = -minLane;
+            int maxAllowedDelta = maxLaneIndex - maxLane;
+            return Mathf.Clamp(requestedDelta, minAllowedDelta, maxAllowedDelta);
         }
 
         private int GetLaneFromPosition(float positionY)
@@ -2631,6 +2919,132 @@ namespace KalBeat.Charting.Editor
 
             hitEvent = null;
             return false;
+        }
+
+        private void SetSingleSelectedEvent(ChartEventData eventData)
+        {
+            selectedEvents.Clear();
+            selectedEvent = eventData;
+            if (eventData != null)
+            {
+                selectedEvents.Add(eventData);
+            }
+        }
+
+        private void SetSelectedEvents(List<ChartEventData> events)
+        {
+            selectedEvents.Clear();
+            selectedEvent = null;
+            if (events == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < events.Count; i++)
+            {
+                ChartEventData eventData = events[i];
+                if (eventData == null ||
+                    currentChart == null ||
+                    currentChart.Events == null ||
+                    !currentChart.Events.Contains(eventData) ||
+                    selectedEvents.Contains(eventData))
+                {
+                    continue;
+                }
+
+                selectedEvents.Add(eventData);
+            }
+
+            if (selectedEvents.Count > 0)
+            {
+                selectedEvent = selectedEvents[0];
+            }
+        }
+
+        private void ClearSelectedEvents()
+        {
+            selectedEvents.Clear();
+            selectedEvent = null;
+        }
+
+        private bool IsEventSelected(ChartEventData eventData)
+        {
+            return eventData != null && selectedEvents.Contains(eventData);
+        }
+
+        private void BeginMarqueeSelection(Vector2 localPosition)
+        {
+            isMarqueeSelecting = true;
+            marqueeStartLocalPosition = localPosition;
+            marqueeCurrentLocalPosition = localPosition;
+        }
+
+        private void UpdateMarqueeSelection(Vector2 localPosition)
+        {
+            if (!isMarqueeSelecting)
+            {
+                return;
+            }
+
+            marqueeCurrentLocalPosition = localPosition;
+            Repaint();
+        }
+
+        private void CompleteMarqueeSelection()
+        {
+            if (!isMarqueeSelecting)
+            {
+                return;
+            }
+
+            Rect selectionRect = GetNormalizedRect(marqueeStartLocalPosition, marqueeCurrentLocalPosition);
+            bool hasSelectionArea = selectionRect.width >= SelectionDragThreshold ||
+                                    selectionRect.height >= SelectionDragThreshold;
+            if (!hasSelectionArea)
+            {
+                ClearMarqueeSelectionState();
+                Repaint();
+                return;
+            }
+
+            List<ChartEventData> selectedInRect = new List<ChartEventData>();
+            if (currentChart != null && currentChart.Events != null)
+            {
+                for (int i = 0; i < currentChart.Events.Count; i++)
+                {
+                    ChartEventData eventData = currentChart.Events[i];
+                    if (eventData != null && selectionRect.Overlaps(GetEventRect(eventData)))
+                    {
+                        selectedInRect.Add(eventData);
+                    }
+                }
+            }
+
+            SetSelectedEvents(selectedInRect);
+            if (selectedEvent != null)
+            {
+                cursorBeat = selectedEvent.Beat;
+                selectedLane = selectedEvent.Lane;
+            }
+
+            ClearMarqueeSelectionState();
+            Repaint();
+        }
+
+        private void ClearMarqueeSelectionState()
+        {
+            isMarqueeSelecting = false;
+            marqueeStartLocalPosition = Vector2.zero;
+            marqueeCurrentLocalPosition = Vector2.zero;
+        }
+
+        private static Rect GetNormalizedRect(Vector2 start, Vector2 end)
+        {
+            float xMin = Mathf.Min(start.x, end.x);
+            float yMin = Mathf.Min(start.y, end.y);
+            float xMax = Mathf.Max(start.x, end.x);
+            float yMax = Mathf.Max(start.y, end.y);
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
         }
 
         private ChartEventData FindEventInSlot(float beat, int lane)
@@ -2691,9 +3105,10 @@ namespace KalBeat.Charting.Editor
 
         private float GetDisplayedBeat(ChartEventData eventData)
         {
-            if (isDraggingEvent && ReferenceEquals(draggedEvent, eventData))
+            int draggedIndex = GetDraggedEventIndex(eventData);
+            if (draggedIndex >= 0)
             {
-                return draggedBeat;
+                return Mathf.Max(0f, draggedEventStartBeats[draggedIndex] + draggedBeatDelta);
             }
 
             return eventData.Beat;
@@ -2701,12 +3116,34 @@ namespace KalBeat.Charting.Editor
 
         private int GetDisplayedLane(ChartEventData eventData)
         {
-            if (isDraggingEvent && ReferenceEquals(draggedEvent, eventData))
+            int draggedIndex = GetDraggedEventIndex(eventData);
+            if (draggedIndex >= 0)
             {
-                return draggedLane;
+                return Mathf.Clamp(
+                    draggedEventStartLanes[draggedIndex] + draggedLaneDelta,
+                    0,
+                    Mathf.Max(0, currentChart.Meta.LaneCount - 1));
             }
 
             return eventData.Lane;
+        }
+
+        private int GetDraggedEventIndex(ChartEventData eventData)
+        {
+            if (!isDraggingEvent || eventData == null)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < draggedEvents.Count; i++)
+            {
+                if (ReferenceEquals(draggedEvents[i], eventData))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private static Color GetEventColor(ChartEventData eventData)

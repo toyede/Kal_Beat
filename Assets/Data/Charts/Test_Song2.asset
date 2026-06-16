@@ -35,7 +35,7 @@ MonoBehaviour:
   events: []
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: 
-    isValid: 0
+    sourceSignature: e8dfd50fcbdabd8a9c8f78eeafcef03a
+    isValid: 1
     invalidReason: 
     steps: []
