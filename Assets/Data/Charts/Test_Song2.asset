@@ -24,18 +24,434 @@ MonoBehaviour:
     laneCount: 4
     maxEventsPerSlot: 4
     laneBindings:
+    - bindingType: 1
+      bindingId: boar
     - bindingType: 0
       bindingId: 
     - bindingType: 0
       bindingId: 
     - bindingType: 0
       bindingId: 
-    - bindingType: 0
-      bindingId: 
-  events: []
+  events:
+  - beat: 12.25
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 22
+    lane: 0
+    kind: 1
+    phase: 0
+    stepIndex: 0
+    readyCueType: 1
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 2421a5b1b57b46ff81cda6f9a8955ad3
+    appliedPatternAssetGuid: a466766dacc9caa479c6c4b734f945b5
+    appliedPatternId: pattern_2
+    appliedPatternSignature: 339dbd68bd9e5738ad6d4783bb2c1100
+    appliedPatternTimingBeat: 22
+    appliedPatternTimingStepIndex: 1
+    appliedPatternStepCount: 2
+  - beat: 23
+    lane: 0
+    kind: 1
+    phase: 1
+    stepIndex: 1
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 1
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 3
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 2421a5b1b57b46ff81cda6f9a8955ad3
+    appliedPatternAssetGuid: a466766dacc9caa479c6c4b734f945b5
+    appliedPatternId: pattern_2
+    appliedPatternSignature: 339dbd68bd9e5738ad6d4783bb2c1100
+    appliedPatternTimingBeat: 22
+    appliedPatternTimingStepIndex: 1
+    appliedPatternStepCount: 2
+  - beat: 25
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 0
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 2
+    targetBandUnits: 4
+    movementDirectionHint: 1
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 521ab2d83d664a7fbb511f292c2ec319
+    appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
+    appliedPatternId: pattern_1
+    appliedPatternSignature: 5f2736f333a1a8d686a68c80e0c46472
+    appliedPatternTimingBeat: 27
+    appliedPatternTimingStepIndex: 2
+    appliedPatternStepCount: 3
+  - beat: 26
+    lane: 0
+    kind: 2
+    phase: 0
+    stepIndex: 1
+    readyCueType: 2
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 2
+    moveUnits: 4
+    targetBandUnits: 4
+    movementDirectionHint: 2
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 521ab2d83d664a7fbb511f292c2ec319
+    appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
+    appliedPatternId: pattern_1
+    appliedPatternSignature: 5f2736f333a1a8d686a68c80e0c46472
+    appliedPatternTimingBeat: 27
+    appliedPatternTimingStepIndex: 2
+    appliedPatternStepCount: 3
+  - beat: 27
+    lane: 0
+    kind: 2
+    phase: 1
+    stepIndex: 2
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 4
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 521ab2d83d664a7fbb511f292c2ec319
+    appliedPatternAssetGuid: a4b4cab5cb3922b4d9ff4634051ed0b7
+    appliedPatternId: pattern_1
+    appliedPatternSignature: 5f2736f333a1a8d686a68c80e0c46472
+    appliedPatternTimingBeat: 27
+    appliedPatternTimingStepIndex: 2
+    appliedPatternStepCount: 3
+  - beat: 32.75
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 34.75
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 36.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 38.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 40.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 42.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 44.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 46.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 48.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
+  - beat: 50.5
+    lane: 0
+    kind: 0
+    phase: 1
+    stepIndex: 0
+    readyCueType: 0
+    directionHint: 0
+    nudgeMs: 0
+    movementResolveMode: 0
+    moveUnits: 0
+    targetBandUnits: 0
+    movementDirectionHint: 0
+    entryBandUnits: 0
+    playerKnockbackUnits: 0
+    monsterKnockbackUnits: 0
+    rangedPhraseId: 
+    rangedCueIndex: -1
+    rangedAnchorIndex: -1
+    rangedOpen: 0
+    appliedPatternInstanceId: 
+    appliedPatternAssetGuid: 
+    appliedPatternId: 
+    appliedPatternSignature: 
+    appliedPatternTimingBeat: 0
+    appliedPatternTimingStepIndex: -1
+    appliedPatternStepCount: 0
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: e8dfd50fcbdabd8a9c8f78eeafcef03a
-    isValid: 1
-    invalidReason: 
+    sourceSignature: 
+    isValid: 0
+    invalidReason: Chart source data changed.
     steps: []

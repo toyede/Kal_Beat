@@ -20,20 +20,16 @@ MonoBehaviour:
     bpm: 110
     offsetSec: 0.104
     songLengthSec: 196.363
-    gridDivision: 4
-    laneCount: 6
+    gridDivision: 8
+    laneCount: 4
     maxEventsPerSlot: 4
     laneBindings:
     - bindingType: 1
       bindingId: boar
     - bindingType: 1
       bindingId: boar
-    - bindingType: 0
-      bindingId: 
-    - bindingType: 0
-      bindingId: 
-    - bindingType: 0
-      bindingId: 
+    - bindingType: 1
+      bindingId: boar
     - bindingType: 0
       bindingId: 
   events:
@@ -5603,7 +5599,7 @@ MonoBehaviour:
     appliedPatternStepCount: 2
   resolvedTimeline:
     cacheVersion: 1
-    sourceSignature: 98caab22c0533ad0172a5c9f75157bf2
+    sourceSignature: d48816f4a3bf244a94b1455694cafcf3
     isValid: 1
     invalidReason: 
     steps:
